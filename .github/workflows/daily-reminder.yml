@@ -1,7 +1,7 @@
 name: Daily reminder
 
-# Every evening, check LeetCode for an accepted submission today and send an
-# ntfy push if there isn't one. Runs on GitHub's servers, so the PC can be off.
+# Every evening, check LeetCode for an accepted submission today and send a
+# reminder (ntfy and/or Discord) if there isn't one. Runs on GitHub's servers, so the PC can be off.
 #
 # Notes on the schedule:
 # - Cron times are always UTC. Local time shifts by an hour when daylight
@@ -39,6 +39,10 @@ jobs:
       LEETCODE_USERNAME: ${{ vars.LEETCODE_USERNAME }}
       # A secret, because anyone who knows an ntfy.sh topic can read its messages.
       NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+      # A secret, because anyone with a Discord webhook URL can post to the channel.
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      # Optional numeric user ID, for an @mention that pings the phone.
+      DISCORD_USER_ID: ${{ vars.DISCORD_USER_ID }}
       TZ: ${{ vars.TZ || 'America/Chicago' }}
     steps:
       - uses: actions/checkout@v4
