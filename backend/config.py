@@ -22,8 +22,16 @@ def parse_reminder_time(value: str) -> tuple[int, int]:
     return hour, minute
 
 
+DISCORD_WEBHOOK_PREFIXES = (
+    "https://discord.com/api/webhooks/",
+    "https://discordapp.com/api/webhooks/",
+)
+
+
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=ENV_FILE, extra="ignore")
+    # hide_input_in_errors: a bad value is never echoed back in a validation error,
+    # so a mistyped secret (like the Discord webhook URL) can't end up in a log.
+    model_config = SettingsConfigDict(env_file=ENV_FILE, extra="ignore", hide_input_in_errors=True)
 
     leetcode_username: str = ""
     tz: str = "America/Chicago"
@@ -38,6 +46,11 @@ class Settings(BaseSettings):
     # Phone notifications through ntfy.sh. An empty topic means "don't send anything".
     ntfy_server: str = "https://ntfy.sh"
     ntfy_topic: str = ""
+
+    # Discord reminders (v5). An empty webhook URL means Discord is off.
+    # The URL is a secret: anyone who has it can post to the channel. Never log it.
+    discord_webhook_url: str = Field(default="", repr=False)
+    discord_user_id: str = ""  # optional; set it to get a real @mention ping
 
     # Browser origins allowed to call the API directly (comma-separated).
     # The tracker's own dev frontend uses the Vite proxy and doesn't need this; another
@@ -61,6 +74,26 @@ class Settings(BaseSettings):
     def check_reminder_time(cls, value: str) -> str:
         parse_reminder_time(value)
         return value.strip()
+
+    @field_validator("discord_webhook_url")
+    @classmethod
+    def check_discord_webhook_url(cls, value: str) -> str:
+        """Fail at startup on a URL that isn't a Discord webhook. The error never shows the URL."""
+        value = value.strip()
+        if value and not value.startswith(DISCORD_WEBHOOK_PREFIXES):
+            raise ValueError(
+                "DISCORD_WEBHOOK_URL must start with https://discord.com/api/webhooks/ "
+                "(the URL itself is not shown because it is a secret)"
+            )
+        return value
+
+    @field_validator("discord_user_id")
+    @classmethod
+    def check_discord_user_id(cls, value: str) -> str:
+        value = value.strip()
+        if value and not value.isdigit():
+            raise ValueError("DISCORD_USER_ID must be digits only (Discord's numeric user ID)")
+        return value
 
     @property
     def reminder_hour_minute(self) -> tuple[int, int]:

@@ -15,6 +15,8 @@ os.environ["DATABASE_URL"] = "sqlite://"  # placeholder; replaced per test below
 os.environ["ENABLE_SCHEDULER"] = "false"  # background jobs never run in tests
 os.environ["CORS_ORIGINS"] = "http://localhost:5174"
 os.environ["NTFY_TOPIC"] = ""  # no real notifications, whatever the owner's .env says
+os.environ["DISCORD_WEBHOOK_URL"] = ""
+os.environ["DISCORD_USER_ID"] = ""
 
 import json  # noqa: E402
 from pathlib import Path  # noqa: E402

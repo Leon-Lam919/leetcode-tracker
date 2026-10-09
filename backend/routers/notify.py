@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException
 
-from config import settings
 from services import notify
 
 router = APIRouter()
@@ -9,8 +8,8 @@ router = APIRouter()
 @router.post("/notify/test")
 def send_test_notification():
     """Send a test notification, to check your phone setup."""
-    if not settings.ntfy_topic:
-        raise HTTPException(status_code=400, detail="NTFY_TOPIC is not set in .env")
+    if not notify.configured_channels():
+        raise HTTPException(status_code=400, detail="Set NTFY_TOPIC or DISCORD_WEBHOOK_URL in .env")
     try:
         notify.send("LeetCode Tracker test", "Notifications work. 🎉")
     except notify.NotifyError as error:
