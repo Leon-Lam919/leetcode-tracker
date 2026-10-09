@@ -44,9 +44,35 @@ def test_same_problem_different_day_is_allowed(client):
     assert add(client, solved_date=yesterday).status_code == 201
 
 
-def test_unknown_problem_without_details_is_422(client):
+def test_manual_add_looks_up_problem_on_leetcode(client, fake_leetcode):
+    response = client.post("/api/solves", json={"title_slug": "valid-parentheses"})
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["title"] == "Valid Parentheses"
+    assert body["difficulty"] == "Easy"
+    assert body["topics"] == ["String", "Stack"]
+    assert fake_leetcode.calls == ["question"]
+
+
+def test_manual_add_falls_back_to_body_when_lookup_fails(client, fake_leetcode):
+    fake_leetcode.down = True
+    response = add(client)  # body includes title, difficulty, topics
+    assert response.status_code == 201
+    assert response.json()["title"] == "Two Sum"
+
+
+def test_manual_add_with_failed_lookup_and_no_details_is_502(client, fake_leetcode):
     response = client.post("/api/solves", json={"title_slug": "made-up-problem"})
-    assert response.status_code == 422
+    assert response.status_code == 502
+    assert "title and difficulty" in response.json()["detail"]
+
+
+def test_known_problem_is_not_looked_up_again(client, fake_leetcode):
+    yesterday = (today_local() - timedelta(days=1)).isoformat()
+    client.post("/api/solves", json={"title_slug": "two-sum", "solved_date": yesterday})
+    client.post("/api/solves", json={"title_slug": "two-sum"})
+    assert fake_leetcode.calls == ["question"]
 
 
 def test_list_is_newest_first(client):

@@ -25,7 +25,7 @@ def add_solve(data: SolveCreate, session: SessionDep):
     except solves.DuplicateSolveError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
     except solves.MissingProblemInfoError as error:
-        raise HTTPException(status_code=422, detail=str(error)) from error
+        raise HTTPException(status_code=502, detail=str(error)) from error
 
 
 @router.patch("/solves/{solve_id}", response_model=SolveOut)

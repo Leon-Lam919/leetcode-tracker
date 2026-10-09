@@ -7,6 +7,7 @@ from sqlmodel import Session, select
 
 from models.schemas import SolveCreate, SolveOut, SolveUpdate
 from models.tables import Problem, Solve
+from services import leetcode_client
 from services.clock import today_local, utc_now
 from services.problems import create_problem, find_problem
 
@@ -16,7 +17,7 @@ class DuplicateSolveError(Exception):
 
 
 class MissingProblemInfoError(Exception):
-    """We don't know the problem and weren't given enough info to create it."""
+    """The LeetCode lookup failed and the request didn't include title and difficulty."""
 
 
 def to_solve_out(solve: Solve, problem: Problem) -> SolveOut:
@@ -67,17 +68,22 @@ def solve_exists(session: Session, problem_id: int, solved_date: date) -> bool:
 
 
 def get_or_create_problem_for_manual_add(session: Session, data: SolveCreate) -> Problem:
+    """Find the problem in the DB, else look it up on LeetCode, else use the request body."""
     problem = find_problem(session, data.title_slug)
     if problem:
         return problem
 
-    if not (data.title and data.difficulty):
-        raise MissingProblemInfoError(
-            f"Unknown problem '{data.title_slug}'. Provide title and difficulty."
-        )
-    return create_problem(
-        session, data.title_slug, data.title, data.difficulty, data.topics or []
-    )
+    try:
+        info = leetcode_client.get_question(data.title_slug)
+        return create_problem(session, info.title_slug, info.title, info.difficulty, info.topics)
+    except leetcode_client.LeetCodeError as error:
+        if not (data.title and data.difficulty):
+            raise MissingProblemInfoError(
+                f"Couldn't look up '{data.title_slug}' on LeetCode ({error}). "
+                "Enter the title and difficulty to add it by hand."
+            ) from error
+
+    return create_problem(session, data.title_slug, data.title, data.difficulty, data.topics or [])
 
 
 def create_manual_solve(session: Session, data: SolveCreate) -> SolveOut:
