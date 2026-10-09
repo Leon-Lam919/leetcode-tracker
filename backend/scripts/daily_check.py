@@ -3,15 +3,17 @@
 Run from backend/:  python scripts/daily_check.py [--dry-run] [--force]
 
 It asks LeetCode whether you have an accepted submission today (in TZ) and,
-if not, sends an ntfy push. No database and no .env file: everything comes
-from environment variables, so it runs on a fresh GitHub runner.
+if not, sends a reminder through ntfy and/or Discord. No database and no .env
+file: everything comes from environment variables, so it runs on a fresh GitHub runner.
 
-    LEETCODE_USERNAME  required
-    TZ                 default America/Chicago
-    NTFY_TOPIC         required unless --dry-run
-    NTFY_SERVER        default https://ntfy.sh
+    LEETCODE_USERNAME    required
+    TZ                   default America/Chicago
+    NTFY_TOPIC           at least one of these two is required unless --dry-run
+    DISCORD_WEBHOOK_URL  (a secret: the URL is never printed)
+    NTFY_SERVER          default https://ntfy.sh
+    DISCORD_USER_ID      optional, digits only: @mention this user for a phone ping
 
-Exit codes: 0 = all good, 1 = LeetCode or ntfy failed, 2 = bad configuration.
+Exit codes: 0 = all good, 1 = LeetCode or every channel failed, 2 = bad configuration.
 """
 
 import argparse
@@ -23,7 +25,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 BACKEND = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND))  # so `services` can be imported when run as a script
 
-from config import settings  # noqa: E402
+from config import DISCORD_WEBHOOK_PREFIXES, settings  # noqa: E402
 from services import notify  # noqa: E402
 from services.clock import to_local_date, today_local  # noqa: E402
 from services.leetcode_client import LeetCodeError, get_recent_accepted  # noqa: E402
@@ -57,11 +59,23 @@ def load_env(dry_run: bool) -> str:
         raise ConfigError(f"TZ={tz!r} is not a valid IANA timezone") from error
 
     topic = os.environ.get("NTFY_TOPIC", "").strip()
-    if not topic and not dry_run:
-        raise ConfigError("NTFY_TOPIC is not set (use --dry-run to test without it)")
+    webhook = os.environ.get("DISCORD_WEBHOOK_URL", "").strip()
+    if not topic and not webhook and not dry_run:
+        raise ConfigError(
+            "NTFY_TOPIC and DISCORD_WEBHOOK_URL are both unset; set at least one "
+            "(use --dry-run to test without them)"
+        )
+    if webhook and not webhook.startswith(DISCORD_WEBHOOK_PREFIXES):
+        # Never echo the URL: it's a secret.
+        raise ConfigError("DISCORD_WEBHOOK_URL must start with https://discord.com/api/webhooks/")
+    user_id = os.environ.get("DISCORD_USER_ID", "").strip()
+    if user_id and not user_id.isdigit():
+        raise ConfigError("DISCORD_USER_ID must be digits only")
 
     settings.tz = tz
     settings.ntfy_topic = topic
+    settings.discord_webhook_url = webhook
+    settings.discord_user_id = user_id
     settings.ntfy_server = os.environ.get("NTFY_SERVER", "").strip() or DEFAULT_NTFY_SERVER
     return username
 
@@ -69,6 +83,8 @@ def load_env(dry_run: bool) -> str:
 def deliver(message: str, dry_run: bool) -> None:
     """Send the push, or just print it with --dry-run. Raises NotifyError."""
     if dry_run:
+        channels = ", ".join(notify.configured_channels()) or "none configured"
+        print(f"[dry-run] channels: {channels}")
         print(f"[dry-run] would send: {TITLE!r}: {message}")
         return
     notify.send(TITLE, message)
@@ -123,7 +139,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         return run(username, args.dry_run, args.force)
     except notify.NotifyError as error:
-        print(f"❌ ntfy failed: {error}", file=sys.stderr)
+        print(f"❌ Notification failed: {error}", file=sys.stderr)
         return 1
 
 
