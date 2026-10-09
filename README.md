@@ -1,218 +1,175 @@
 # LeetCode Tracker
 
-![CI](https://github.com/OWNER/leetcode-tracker/actions/workflows/ci.yml/badge.svg)
-<!-- Replace OWNER with your GitHub username after pushing. -->
+[![CI](https://github.com/Leon-Lam919/leetcode-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/Leon-Lam919/leetcode-tracker/actions/workflows/ci.yml)
+[![Daily reminder](https://github.com/Leon-Lam919/leetcode-tracker/actions/workflows/daily-reminder.yml/badge.svg)](https://github.com/Leon-Lam919/leetcode-tracker/actions/workflows/daily-reminder.yml)
 
-A small full-stack app for a simple habit: **solve one LeetCode problem a day.**
-It shows whether today is done, keeps your streak, draws a 90-day heatmap, and
-stores notes on each solve so you can review problems later. v2 adds interview prep:
-a spaced-repetition review queue, the NeetCode 150 pattern checklist, written solutions,
-and an automatic sync with an evening reminder on your phone. v3 makes rating a solve
-take one click, right when it arrives.
+A full-stack app that helps with one habit: **solving one LeetCode problem every day.**
 
-![Screenshot](docs/screenshot.png)
-<!-- Screenshot placeholders: add docs/screenshot.png (Today tab),
-     docs/review-queue.png and docs/patterns.png (Patterns tab). -->
+It syncs your accepted submissions from LeetCode, shows whether today is done, and tracks your
+streak. It brings solved problems back for review with spaced repetition, and tracks your
+progress through the NeetCode 150 patterns. If you haven't solved anything by the evening, it
+sends a reminder to your phone.
+
+<!-- Screenshots: add docs/today.png and docs/patterns.png, then uncomment.
+![Today tab](docs/today.png)
+![Patterns tab](docs/patterns.png)
+-->
 
 ## Features
-- **Today banner:** ✅ done / ❌ not yet, current streak 🔥 and best streak
-- **Sync now:** pulls your last 20 accepted submissions from LeetCode (safe to click twice)
-- **Manual add:** paste a problem URL or slug, for older solves or when LeetCode is down
-- **Notes:** time spent, confidence (1–3), free-text notes, "needs review" flag
-- **Heatmap and stats:** 90-day grid, totals by difficulty, top topics
-- **Filters:** by difficulty, topic, or needs-review
-- **Solutions (v2):** approach, code (Tab indents), language, time and space complexity; 📝 marks solves that have one
-- **Review queue (v2):** spaced repetition per problem (1, 3, 7, 14, 30 days). Rate each review **Again / Good / Easy**; re-solving a problem on a later day counts as a review
-- **Patterns tab (v2):** NeetCode 150 grouped into its 18 patterns, with progress bars and ✅ for solved problems
-- **Auto-sync + reminder (v2):** syncs every few hours and, at a set time, sends a phone notification through [ntfy](https://ntfy.sh) if today isn't done yet
-- **Quick rating (v3):** a "✍️ Rate today's solves" card lists recent solves with no confidence.
-  One click on **Again / Good / Easy** saves the rating, the 🔁 review flag and an optional time
-  chip (15 / 30 / 45 / 60+ min). "Skip" hides a row until you reload. You can also rate while adding
-  a solve by hand, or with the "Rate" chip in the solves table
-- **Rating sets the first review (v3):** rating a problem's first solve (before it has been reviewed)
-  sets its first review: Again or Good → tomorrow, Easy → in 3 days. Otherwise changing a rating
-  doesn't move the schedule
-- Works on a phone (375px) and in dark mode
 
-## Stack
-| Layer | Tools |
-|---|---|
-| Backend | Python 3.12, FastAPI, SQLModel on SQLite, httpx, loguru, APScheduler |
-| Frontend | React 19, Vite 7, Tailwind 3.4 |
-| Tests | pytest + respx (backend), Vitest + React Testing Library (frontend) |
-| Infra | Docker Compose, GitHub Actions |
+**Daily habit**
+- **Today banner:** ✅ done or ❌ not yet, with your current 🔥 streak and best streak
+- **Sync from LeetCode:** pulls your recent accepted submissions. Safe to click twice: it never duplicates a solve.
+- **90-day heatmap:** one square per day, plus totals by difficulty and topic
+- **Phone reminders:** a push notification through [ntfy](https://ntfy.sh) if today isn't done. It can come from the app itself or from a free GitHub Actions job that runs even when your computer is off.
 
-## Setup
-Copy the example env file and fill in your LeetCode username:
-```bash
-cp .env.example .env
+**Learning, not just counting**
+- **One-click rating:** new solves show up on a "Rate today's solves" card. Click **Again / Good / Easy**, optionally flag it for review and pick a time chip, and it's saved.
+- **Review queue:** spaced repetition brings each problem back after 1, 3, 7, 14 and 30 days. Low-confidence solves come back sooner.
+- **NeetCode 150 checklist:** progress bars for all 18 patterns, so you can see which ones you haven't practised
+- **Solution notes:** your approach, your code, and its time and space complexity for each solve, to revise before interviews
+
+**Built to be used:** works at phone width (375px), supports dark mode, and has filters by difficulty, topic and needs-review. If LeetCode is down, you can add a solve by hand by pasting the problem URL.
+
+## Tech stack
+
+| Layer | Tools | Why |
+|---|---|---|
+| Backend | Python 3.12, FastAPI, SQLModel on SQLite | Typed models, automatic API docs at `/docs`, and a database that's a single file |
+| Background jobs | APScheduler, httpx, ntfy | Auto-sync and the evening reminder run inside the app, with no extra services |
+| Frontend | React 19, Vite 7, Tailwind CSS 3.4 | Fast dev server; the heatmap is plain CSS grid with no chart library |
+| Tests | pytest + respx, Vitest + React Testing Library | 141 backend and 37 frontend tests. Tests never touch the network: LeetCode and ntfy are faked. |
+| CI/CD | GitHub Actions | Lint, test and build run on every push. A scheduled job sends the daily reminder. |
+| Infra | Docker Compose, nginx | One command runs everything. nginx serves the frontend and forwards `/api` to the backend. |
+
+## How it works
+
 ```
-| Variable | Meaning |
-|---|---|
-| `LEETCODE_USERNAME` | Your public LeetCode username |
-| `TZ` | Your IANA timezone, e.g. `America/Toronto`. Decides what "today" means. The app refuses to start if it's invalid. |
-| `DATABASE_URL` | SQLite file, relative to `backend/` (default `sqlite:///./data/tracker.db`) |
-| `DAILY_GOAL` | Solves needed for a day to count toward the streak (default `1`) |
-| `ENABLE_SCHEDULER` | `true` turns on auto-sync and the evening reminder (default `false`) |
-| `SYNC_INTERVAL_HOURS` | Hours between automatic syncs (default `3`) |
-| `REMINDER_TIME` | When to check and remind, 24-hour `HH:MM` in `TZ` (default `20:00`). The app refuses to start if it's invalid. |
-| `NTFY_SERVER` | ntfy server (default `https://ntfy.sh`) |
-| `NTFY_TOPIC` | Your ntfy topic. Empty = no notifications (default) |
-| `CORS_ORIGINS` | Other browser apps allowed to call the API, comma-separated (default `http://localhost:5174`) |
+Browser (React)  ──fetch /api──▶  FastAPI
+                                    ├── routers/    HTTP only: validate input, call a service, return status codes
+                                    ├── services/   the logic, kept small and testable
+                                    │     leetcode_client.py   the ONLY file that talks to LeetCode
+                                    │     sync.py              LeetCode → database, idempotent
+                                    │     streaks.py           pure functions: streak math
+                                    │     review_schedule.py   pure functions: spaced repetition
+                                    │     scheduler.py         auto-sync + evening reminder
+                                    │     notify.py            ntfy push notifications
+                                    ├── migrations.py   numbered schema upgrades, run on startup
+                                    └── SQLite  backend/data/tracker.db
 
-Existing databases are upgraded automatically on startup (`backend/migrations.py`).
-Back up `backend/data/tracker.db` before upgrading if you want an easy way back.
-
-## Phone reminders (ntfy)
-1. Install the **ntfy** app (Android / iOS) or open https://ntfy.sh in a browser.
-2. Subscribe to a long, hard-to-guess topic name, e.g. `leetcode-7f3k9q2x`.
-   ntfy.sh topics are **public**: anyone who knows the name can read and post to it.
-3. In `.env`, set `NTFY_TOPIC=leetcode-7f3k9q2x` and `ENABLE_SCHEDULER=true`, then restart the backend.
-4. Send a test: `curl -X POST http://localhost:8000/api/notify/test`. Your phone should buzz.
-
-At `REMINDER_TIME` the app syncs first, then sends "No LeetCode yet today. 🔥 5-day streak at risk."
-only if today still has no solve.
-
-## Daily reminder (GitHub Actions)
-The in-app reminder only fires while the backend is running. The **Daily reminder** workflow
-(`.github/workflows/daily-reminder.yml`) runs on GitHub's servers instead, free, with no
-database: at 01:30 and 03:30 UTC (8:30pm and 10:30pm Chicago in summer, an hour earlier in
-winter) it runs `backend/scripts/daily_check.py`, which asks LeetCode for an accepted
-submission today and sends an ntfy push if there isn't one.
-
-Setup:
-1. Create a GitHub repo and push.
-2. Settings → Secrets and variables → Actions:
-   - add the **secret** `NTFY_TOPIC` (your topic name; it's a secret because anyone who knows it can read it)
-   - add the **variable** `LEETCODE_USERNAME=poke213`
-   - optionally add the **variable** `TZ` (default `America/Chicago`)
-3. Actions tab → "Daily reminder" → **Run workflow** with `force` on. Your phone should buzz.
-
-Notes:
-- **60-day rule:** GitHub disables scheduled workflows after 60 days with no commits in a
-  public repo. To turn it back on: Actions tab → "Daily reminder" → **Enable workflow**
-  (or push any commit).
-- If you use this, turn off the in-app scheduler (`ENABLE_SCHEDULER=false`) so you don't get
-  two reminders. When the Raspberry Pi deployment happens, choose one reminder.
-- Scheduled runs can start 5–30 minutes late.
-- It only sees your last 20 accepted submissions, so a very long streak is undercounted in the message.
-
-Try it locally without sending anything (env vars only, no `.env` needed):
-```bash
-cd backend && LEETCODE_USERNAME=poke213 python scripts/daily_check.py --dry-run
+GitHub Actions (daily, 8:30pm + 10:30pm Chicago)
+   └── scripts/daily_check.py  →  LeetCode: solved today?  →  no: push to phone
 ```
-`--force` sends even if today is done. A LeetCode failure sends "Couldn't check LeetCode
-today. Solve one anyway!" and exits 1, so the run shows red.
 
-## Run in development
-Two terminals:
+**Design choices worth noting:**
+- **Timezones:** times are stored in UTC and converted to your local date once, when a solve is saved. A solve at 11:30pm counts for the day you were in.
+- **One file talks to LeetCode:** LeetCode has no official API, so all calls to its GraphQL endpoint live in one module. If LeetCode changes it, that's the only file to fix.
+- **Pure functions for tricky logic:** streaks and review scheduling never touch the database, which makes their edge cases easy to test.
+- **Safe upgrades:** a `schema_version` table and ordered migrations upgrade an existing database without losing data.
+
+**Data model:**
+- `problem`: one row per LeetCode problem
+- `solve`: one row per day you solved it
+- `review`: each problem's spaced-repetition schedule
+- `pattern_problem`: the NeetCode 150
+- `meta`: app state, such as the last sync time
+
+## Quick start
+
 ```bash
-# 1) Backend on http://localhost:8000
+git clone https://github.com/Leon-Lam919/leetcode-tracker.git
+cd leetcode-tracker
+cp .env.example .env        # then set LEETCODE_USERNAME and TZ
+```
+
+**With Docker:**
+```bash
+docker compose up --build   # open http://localhost:5174
+```
+
+**Without Docker** (two terminals):
+```bash
+# Backend: http://localhost:8000 (API docs at /docs)
 cd backend
-python3.12 -m venv venv
-source venv/bin/activate
+python3.12 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 uvicorn main:app --reload
 
-# 2) Frontend on http://localhost:5174
+# Frontend: http://localhost:5174
 cd frontend
 npm install
 npm run dev
 ```
-Open http://localhost:5174. Vite forwards `/api` to the backend, so the tracker's own frontend
-needs no CORS setup. (It uses 5174, not Vite's default 5173, so it can run next to another app.)
 
-### Running next to another app (e.g. a dashboard)
-Another frontend that calls the tracker API directly from the browser (say on
-http://localhost:5173) must be listed in `CORS_ORIGINS`:
-```
-CORS_ORIGINS=http://localhost:5174,http://localhost:5173
-```
-Restart the backend after changing it. Then run the tracker (backend on 8000, frontend on 5174)
-and the other app on its own ports. Only one app can use port 8000, so give the other app's backend a different port.
-API docs (Swagger) are at http://localhost:8000/docs.
-
-## Run with Docker
-```bash
-docker compose up --build
-```
-Open http://localhost:5174. nginx serves the built frontend and forwards `/api` to the backend
-container. The database is stored on your machine in `backend/data/`, so it survives restarts.
-
-## Run tests and lint
+**Tests and lint:**
 ```bash
 cd backend && pytest && ruff check .
 cd frontend && npm test -- --run && npm run lint
 ```
-Backend tests never touch the network: every LeetCode call is answered by a fake
-(`respx`) using JSON fixtures in `backend/tests/fixtures/`. Each test gets its own
-temporary SQLite file.
 
-## Architecture
-```
-Browser (React)
-   │  fetch("/api/...")          src/api.js: one function per endpoint
-   ▼
-Vite dev proxy  /  nginx (Docker)
-   ▼
-FastAPI  main.py
-   ├── routers/     HTTP only: parse the request, call a service, map errors to status codes
-   │     health · solves · stats · sync · reviews · patterns · notify
-   ├── services/    the actual logic
-   │     streaks.py          pure functions, no DB (easy to test)
-   │     review_schedule.py  pure spaced-repetition rule: next_state()
-   │     reviews.py          review queue (due, upcoming, mark reviewed)
-   │     patterns.py         NeetCode 150 seeding + progress
-   │     scheduler.py        background sync + evening reminder (APScheduler)
-   │     notify.py           ntfy notifications
-   │     meta.py             key-value app state (last sync)
-   │     stats.py            totals + heatmap
-   │     solves.py           add / edit / delete / list
-   │     sync.py             LeetCode → DB, idempotent
-   │     leetcode_client.py  the ONLY file that talks to LeetCode
-   │     clock.py            "what day is it?" in your TZ
-   ├── models/      tables.py (DB) and schemas.py (API shapes)
-   ├── migrations.py  numbered schema upgrades (schema_version table)
-   ├── seed/        neetcode150.json (checked with scripts/verify_seed.py)
-   ├── scripts/     verify_seed.py, daily_check.py (GitHub Actions reminder, no DB)
-   └── db.py        SQLite engine + session per request
-          ▼
-     backend/data/tracker.db
-```
+## Configuration
 
-**Data model.** `problem` (one row per LeetCode problem) and `solve` (one row per day you
-solved it). A problem can be solved many times, but only once per day: `(problem_id,
-solved_date)` is unique. `solved_date` is your *local* date, computed once when the solve
-is saved, so a late-night solve counts for the day you were in.
-v2 adds `review` (one row per problem: interval index, next review date), `pattern_list` and
-`pattern_problem` (the NeetCode 150, matched to solves by slug), `meta` (last sync), and
-`schema_version` (which migrations have run).
+All settings live in `.env` (see `.env.example`).
 
-**API.** `GET /api/health`, `GET|POST /api/solves`, `PATCH|DELETE /api/solves/{id}`,
-`GET /api/stats`, `GET /api/heatmap?days=90`, `POST /api/sync`, and in v2
-`GET /api/reviews/due`, `GET /api/reviews/upcoming?days=7`, `POST /api/reviews/{problem_id}`
-(`{"confidence": 1-3}`), `GET /api/patterns?list=neetcode150`, `POST /api/notify/test`, and in v3
-`GET /api/solves/unrated?days=7` (solves with no confidence from the last N local days, newest first).
-See `PLAN.md` §5, `PLAN_V2.md`, `PLAN_V3.md`, or `/docs`.
+| Variable | Default | Meaning |
+|---|---|---|
+| `LEETCODE_USERNAME` | (required) | Your public LeetCode username |
+| `TZ` | `America/Chicago` | Your IANA timezone, e.g. `America/Chicago`. Decides what "today" means. |
+| `DATABASE_URL` | `sqlite:///./data/tracker.db` | Path to the SQLite file, relative to `backend/` |
+| `DAILY_GOAL` | `1` | Solves needed for a day to count toward the streak |
+| `ENABLE_SCHEDULER` | `false` | `true` turns on auto-sync and the in-app reminder |
+| `SYNC_INTERVAL_HOURS` | `3` | Hours between automatic syncs |
+| `REMINDER_TIME` | `20:00` | When the in-app reminder checks, in 24-hour time in `TZ` |
+| `NTFY_SERVER` / `NTFY_TOPIC` | `https://ntfy.sh` / empty | Where reminders go. An empty topic means no notifications. |
+| `CORS_ORIGINS` | `http://localhost:5174` | Other browser apps allowed to call the API, comma-separated |
 
-## About the LeetCode API
-LeetCode has no official public API. This app uses the same GraphQL endpoint the website
-uses (`https://leetcode.com/graphql`), with the `recentAcSubmissionList` and `question`
-queries. The response shapes were checked with real requests before writing the client
-and match what the code expects. Notes:
-- Only the **last 20** accepted submissions are visible, so sync often if you solve a lot,
-  and use manual add for anything older.
-- A profile with no recent public accepted submissions returns an empty list, so sync adds 0.
-- An unknown username returns `null`, which the app reports as "user not found" (HTTP 502).
-- If LeetCode changes the API, only `backend/services/leetcode_client.py` needs fixing.
+## Phone reminders
 
-## What I learned
-<!-- Draft: rewrite these in your own words. -->
-- Splitting a FastAPI app into routers (HTTP) and services (logic) keeps each file small and testable.
-- Writing the tricky logic (streaks) as pure functions made the tests short and obvious.
-- Mocking HTTP with `respx` lets tests cover failures (timeouts, unknown users) that are hard to trigger for real.
-- Timezones: store UTC, convert to a local date once, and never let the browser guess.
-- Idempotent sync: a unique constraint plus "skip if it exists" makes a button safe to click twice.
-- Docker multi-stage builds: Node is only needed to build the frontend, not to serve it.
+There are two options. **Use one, not both**, or you'll get two notifications.
 
-See `LEARNING.md` for the skill each build step practises.
+**Option 1: GitHub Actions** (recommended; works with your computer off):
+1. Install the ntfy app on your phone and subscribe to a long, hard-to-guess topic name. ntfy.sh topics are public, so anyone who knows the name can read them.
+2. In the repo on GitHub, go to **Settings → Secrets and variables → Actions**.
+   - Add the secret `NTFY_TOPIC`.
+   - Add the variable `LEETCODE_USERNAME`.
+   - Optionally add the variable `TZ`.
+3. Go to **Actions → Daily reminder → Run workflow**, tick `force`, and run it. Your phone should buzz.
+
+Notes:
+- Scheduled runs use UTC and can start 5–30 minutes late.
+- GitHub pauses scheduled workflows after 60 days without a commit. Re-enable it from the Actions tab.
+- To test locally without sending anything: `cd backend && LEETCODE_USERNAME=you python scripts/daily_check.py --dry-run`
+
+**Option 2: in-app.** Set `ENABLE_SCHEDULER=true` and `NTFY_TOPIC` in `.env`, restart the backend, then test with `curl -X POST http://localhost:8000/api/notify/test`. This only works while the backend is running.
+
+## Limits of the LeetCode API
+
+- LeetCode only exposes your **last 20** accepted submissions. Sync regularly, and add older solves by hand.
+- Your profile must show recent submissions publicly, or sync finds nothing.
+- An unknown username shows "user not found" (HTTP 502).
+
+## How this was built
+
+This is my **AI-agent-built** project. My other project, a personal dashboard, I write by hand.
+
+Here the roles were split like this:
+- **I** wrote the specs, set the rules for the agents, and reviewed every result.
+- **Claude Code agents** wrote the code, in small steps that each had to pass tests before being committed.
+
+The specs are in the repo:
+- [`PLAN.md`](PLAN.md): the MVP. Data model, API, streak rules, and a definition of done.
+- [`PLAN_V2.md`](PLAN_V2.md): review queue, NeetCode 150, reminders, migrations
+- [`PLAN_V3.md`](PLAN_V3.md): one-click rating
+- [`PLAN_V4.md`](PLAN_V4.md): the GitHub Actions reminder
+
+[`LEARNING.md`](LEARNING.md) lists the engineering skill each build step uses.
+
+What I practised:
+- Writing specs precise enough for someone else to build from
+- Setting limits: no pushes, no paid services, never touch my other repo
+- Checking work against a definition of done instead of trusting "it's finished"
+
+## Roadmap
+
+- [ ] Deploy to my Raspberry Pi
+- [ ] Add screenshots

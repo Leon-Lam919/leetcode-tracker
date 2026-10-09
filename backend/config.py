@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=ENV_FILE, extra="ignore")
 
     leetcode_username: str = ""
-    tz: str = "America/Toronto"
+    tz: str = "America/Chicago"
     database_url: str = "sqlite:///./data/tracker.db"
     daily_goal: int = Field(default=1, ge=1)
 
