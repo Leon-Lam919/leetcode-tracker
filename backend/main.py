@@ -41,10 +41,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="LeetCode Tracker", lifespan=lifespan)
 
-# In dev the Vite proxy makes this unnecessary; it is a fallback for calling the API directly.
+# The tracker's own frontend goes through the Vite proxy (or nginx), so it doesn't need CORS.
+# CORS_ORIGINS lists other browser apps allowed to call the API directly.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=settings.cors_origin_list,
     allow_methods=["*"],
     allow_headers=["*"],
 )

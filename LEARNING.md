@@ -21,3 +21,4 @@
 | B | Review queue (spaced repetition) | Separating a pure scheduling rule (`review_schedule.next_state`) from the DB code, data backfills inside a migration, and faking "now" in tests to check timezone day boundaries. |
 | C | NeetCode 150 checklist | Seed data checked into git, idempotent seeding on startup, verifying data against a real API with a rate-limited script, and grouping rows with a dict that keeps insertion order. |
 | D | Auto-sync + reminder | Background jobs with APScheduler (interval and cron triggers in a fixed timezone), "never crash" error handling in jobs, validating config at startup, and testing outgoing HTTP (ntfy) with `respx` so no real message is sent. |
+| E | CORS + port 5174 | What CORS is for (the browser blocking cross-origin calls unless the API allows that origin), keeping allowed origins in config instead of code, and avoiding port clashes when running two dev apps at once. The dashboard widget half was cancelled by the owner. |

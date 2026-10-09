@@ -13,6 +13,7 @@ os.environ["TZ"] = "America/Toronto"
 os.environ["DAILY_GOAL"] = "1"
 os.environ["DATABASE_URL"] = "sqlite://"  # placeholder; replaced per test below
 os.environ["ENABLE_SCHEDULER"] = "false"  # background jobs never run in tests
+os.environ["CORS_ORIGINS"] = "http://localhost:5174"
 os.environ["NTFY_TOPIC"] = ""  # no real notifications, whatever the owner's .env says
 
 import json  # noqa: E402

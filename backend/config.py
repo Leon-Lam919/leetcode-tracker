@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     ntfy_server: str = "https://ntfy.sh"
     ntfy_topic: str = ""
 
+    # Browser origins allowed to call the API directly (comma-separated).
+    # The tracker's own dev frontend uses the Vite proxy and doesn't need this; another
+    # app (e.g. a dashboard on http://localhost:5173) does.
+    cors_origins: str = "http://localhost:5174"
+
     @field_validator("tz")
     @classmethod
     def check_timezone(cls, value: str) -> str:
@@ -60,6 +65,10 @@ class Settings(BaseSettings):
     @property
     def reminder_hour_minute(self) -> tuple[int, int]:
         return parse_reminder_time(self.reminder_time)
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
     @property
     def zone(self) -> ZoneInfo:
