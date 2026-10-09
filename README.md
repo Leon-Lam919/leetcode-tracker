@@ -73,6 +73,37 @@ Back up `backend/data/tracker.db` before upgrading if you want an easy way back.
 At `REMINDER_TIME` the app syncs first, then sends "No LeetCode yet today. 🔥 5-day streak at risk."
 only if today still has no solve.
 
+## Daily reminder (GitHub Actions)
+The in-app reminder only fires while the backend is running. The **Daily reminder** workflow
+(`.github/workflows/daily-reminder.yml`) runs on GitHub's servers instead, free, with no
+database: at 01:30 and 03:30 UTC (8:30pm and 10:30pm Chicago in summer, an hour earlier in
+winter) it runs `backend/scripts/daily_check.py`, which asks LeetCode for an accepted
+submission today and sends an ntfy push if there isn't one.
+
+Setup:
+1. Create a GitHub repo and push.
+2. Settings → Secrets and variables → Actions:
+   - add the **secret** `NTFY_TOPIC` (your topic name; it's a secret because anyone who knows it can read it)
+   - add the **variable** `LEETCODE_USERNAME=poke213`
+   - optionally add the **variable** `TZ` (default `America/Chicago`)
+3. Actions tab → "Daily reminder" → **Run workflow** with `force` on. Your phone should buzz.
+
+Notes:
+- **60-day rule:** GitHub disables scheduled workflows after 60 days with no commits in a
+  public repo. To turn it back on: Actions tab → "Daily reminder" → **Enable workflow**
+  (or push any commit).
+- If you use this, turn off the in-app scheduler (`ENABLE_SCHEDULER=false`) so you don't get
+  two reminders. When the Raspberry Pi deployment happens, choose one reminder.
+- Scheduled runs can start 5–30 minutes late.
+- It only sees your last 20 accepted submissions, so a very long streak is undercounted in the message.
+
+Try it locally without sending anything (env vars only, no `.env` needed):
+```bash
+cd backend && LEETCODE_USERNAME=poke213 python scripts/daily_check.py --dry-run
+```
+`--force` sends even if today is done. A LeetCode failure sends "Couldn't check LeetCode
+today. Solve one anyway!" and exits 1, so the run shows red.
+
 ## Run in development
 Two terminals:
 ```bash
@@ -143,6 +174,7 @@ FastAPI  main.py
    ├── models/      tables.py (DB) and schemas.py (API shapes)
    ├── migrations.py  numbered schema upgrades (schema_version table)
    ├── seed/        neetcode150.json (checked with scripts/verify_seed.py)
+   ├── scripts/     verify_seed.py, daily_check.py (GitHub Actions reminder, no DB)
    └── db.py        SQLite engine + session per request
           ▼
      backend/data/tracker.db
