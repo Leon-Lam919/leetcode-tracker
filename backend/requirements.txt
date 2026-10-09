@@ -1,0 +1,13 @@
+# App
+fastapi==0.143.0
+uvicorn==0.54.0
+sqlmodel==0.0.48
+httpx==0.28.1
+loguru==0.7.3
+python-dotenv==1.2.4
+pydantic-settings==2.15.0
+
+# Tests and lint
+pytest==9.1.1
+respx==0.23.1
+ruff==0.16.10
