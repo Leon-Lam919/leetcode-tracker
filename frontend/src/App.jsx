@@ -1,11 +1,19 @@
 import { useState } from 'react'
-import { getDueReviews, getHeatmap, getPatterns, getSolves, getStats } from './api'
+import {
+  getDueReviews,
+  getHeatmap,
+  getPatterns,
+  getSolves,
+  getStats,
+  getUnratedSolves,
+} from './api'
 import { useFetch } from './hooks/useFetch'
 import AddSolveForm from './components/AddSolveForm'
 import Filters from './components/Filters'
 import Heatmap from './components/Heatmap'
 import NoteEditor from './components/NoteEditor'
 import PatternChecklist from './components/PatternChecklist'
+import RateSolveCard from './components/RateSolveCard'
 import ReviewQueue from './components/ReviewQueue'
 import SolveTable from './components/SolveTable'
 import StatsPanel from './components/StatsPanel'
@@ -31,6 +39,7 @@ export default function App() {
   const solves = useFetch(getSolves, version, filters)
   const reviews = useFetch(getDueReviews, version)
   const patterns = useFetch(getPatterns, version)
+  const unrated = useFetch(getUnratedSolves, version)
 
   const topics = Object.keys(stats.data?.by_topic ?? {}).sort()
 
@@ -83,6 +92,9 @@ export default function App() {
               <TodayBanner stats={stats.data} />
             </Status>
 
+            {/* Only shows when something is unrated. Sync calls refresh(), so new solves appear. */}
+            <RateSolveCard solves={unrated.data ?? []} onRated={refresh} />
+
             <section className={card}>
               <Status {...reviews}>
                 <ReviewQueue reviews={reviews.data ?? []} onReviewed={refresh} />
@@ -122,7 +134,7 @@ export default function App() {
                 <Filters filters={filters} topics={topics} onChange={setFilters} />
               </div>
               <Status {...solves}>
-                <SolveTable solves={solves.data ?? []} onSelect={setSelected} />
+                <SolveTable solves={solves.data ?? []} onSelect={setSelected} onRated={refresh} />
               </Status>
             </section>
           </>

@@ -43,6 +43,11 @@ export function getSolves(filters = {}) {
   return request(query ? `/solves?${query}` : '/solves')
 }
 
+// Solves from the last `days` local days that have no confidence yet, newest first.
+export function getUnratedSolves(days = 7) {
+  return request(`/solves/unrated?days=${days}`)
+}
+
 export function addSolve(solve) {
   return request('/solves', { method: 'POST', body: JSON.stringify(solve) })
 }

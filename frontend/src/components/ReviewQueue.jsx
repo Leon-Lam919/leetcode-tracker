@@ -1,12 +1,7 @@
 import { useState } from 'react'
 import { markReviewed } from '../api'
 import DifficultyBadge from './DifficultyBadge'
-
-const BUTTONS = [
-  { label: 'Again', confidence: 1, className: 'bg-red-600 hover:bg-red-700' },
-  { label: 'Good', confidence: 2, className: 'bg-blue-600 hover:bg-blue-700' },
-  { label: 'Easy', confidence: 3, className: 'bg-green-600 hover:bg-green-700' },
-]
+import RatingButtons from './RatingButtons'
 
 function overdueText(days) {
   if (days === 0) return 'due today'
@@ -59,20 +54,11 @@ export default function ReviewQueue({ reviews, onReviewed }) {
                 {review.approach && ` · ${review.approach}`}
               </p>
             </div>
-            <div className="flex gap-2">
-              {BUTTONS.map(({ label, confidence, className }) => (
-                <button
-                  key={label}
-                  type="button"
-                  disabled={busyId === review.problem_id}
-                  onClick={() => handleReview(review.problem_id, confidence)}
-                  aria-label={`${label}: ${review.title}`}
-                  className={`rounded px-3 py-1 text-sm font-semibold text-white disabled:opacity-50 ${className}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <RatingButtons
+              name={review.title}
+              disabled={busyId === review.problem_id}
+              onRate={(confidence) => handleReview(review.problem_id, confidence)}
+            />
           </li>
         ))}
       </ul>

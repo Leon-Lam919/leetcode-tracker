@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import SolveTable from '../components/SolveTable'
 
 const base = {
@@ -22,5 +23,38 @@ describe('SolveTable', () => {
     ]
     render(<SolveTable solves={solves} onSelect={() => {}} />)
     expect(screen.getAllByTitle('Has a written solution')).toHaveLength(1)
+  })
+})
+
+afterEach(() => vi.unstubAllGlobals())
+
+describe('SolveTable inline rating', () => {
+  it('rates an unrated row in place without opening the editor', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({}),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const onSelect = vi.fn()
+    const onRated = vi.fn()
+    const user = userEvent.setup()
+    const solves = [
+      { ...base, id: 1, title: 'Two Sum' },
+      { ...base, id: 2, title: '3Sum', confidence: 3 },
+    ]
+
+    render(<SolveTable solves={solves} onSelect={onSelect} onRated={onRated} />)
+    expect(screen.getAllByRole('button', { name: /^Rate / })).toHaveLength(1)
+    expect(screen.getByText('Clean')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Rate Two Sum' }))
+    await user.click(screen.getByRole('button', { name: 'Good: Two Sum' }))
+
+    const [url, options] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/solves/1')
+    expect(JSON.parse(options.body)).toEqual({ confidence: 2 })
+    expect(onRated).toHaveBeenCalled()
+    expect(onSelect).not.toHaveBeenCalled()
   })
 })

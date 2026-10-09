@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { addSolve } from '../api'
 import { extractSlug } from '../slug'
+import RatingButtons from './RatingButtons'
 
 const inputClass =
   'w-full rounded border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800'
@@ -12,6 +13,9 @@ export default function AddSolveForm({ onAdded }) {
   const [showDetails, setShowDetails] = useState(false)
   const [title, setTitle] = useState('')
   const [difficulty, setDifficulty] = useState('Easy')
+  // Optional rating, picked before pressing Add. null = not rated (Enter still submits).
+  const [confidence, setConfidence] = useState(null)
+  const [needsReview, setNeedsReview] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -23,6 +27,8 @@ export default function AddSolveForm({ onAdded }) {
     const body = { title_slug: slug }
     if (solvedDate) body.solved_date = solvedDate
     if (showDetails) Object.assign(body, { title, difficulty })
+    if (confidence !== null) Object.assign(body, { confidence, needs_review: needsReview })
+    else if (needsReview) body.needs_review = true
 
     setSaving(true)
     setError('')
@@ -31,6 +37,8 @@ export default function AddSolveForm({ onAdded }) {
       setInput('')
       setShowDetails(false)
       setTitle('')
+      setConfidence(null)
+      setNeedsReview(false)
       onAdded()
     } catch (err) {
       setError(err.message)
@@ -67,6 +75,22 @@ export default function AddSolveForm({ onAdded }) {
         >
           {saving ? 'Adding…' : 'Add'}
         </button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="text-gray-500 dark:text-gray-400">Rating (optional):</span>
+        <RatingButtons
+          selected={confidence}
+          onRate={(value) => setConfidence((current) => (current === value ? null : value))}
+        />
+        <label className="flex items-center gap-1">
+          <input
+            type="checkbox"
+            checked={needsReview}
+            onChange={(event) => setNeedsReview(event.target.checked)}
+          />
+          🔁 flag for review
+        </label>
       </div>
 
       {showDetails && (
