@@ -70,3 +70,7 @@ export function markReviewed(problemId, confidence) {
     body: JSON.stringify({ confidence }),
   })
 }
+
+export function getPatterns(list = 'neetcode150') {
+  return request(`/patterns?list=${list}`)
+}

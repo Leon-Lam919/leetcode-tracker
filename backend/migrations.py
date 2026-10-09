@@ -70,11 +70,43 @@ def add_review_table(conn: sqlite3.Connection) -> None:
     )
 
 
+def add_pattern_tables(conn: sqlite3.Connection) -> None:
+    """v2 feature 2: pattern checklists. Rows are seeded on startup, not here."""
+    conn.execute(
+        """
+        CREATE TABLE pattern_list (
+            id INTEGER NOT NULL,
+            name VARCHAR NOT NULL,
+            PRIMARY KEY (id),
+            UNIQUE (name)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE pattern_problem (
+            id INTEGER NOT NULL,
+            list_id INTEGER NOT NULL,
+            slug VARCHAR NOT NULL,
+            title VARCHAR NOT NULL,
+            difficulty VARCHAR NOT NULL,
+            pattern VARCHAR NOT NULL,
+            position INTEGER NOT NULL,
+            PRIMARY KEY (id),
+            UNIQUE (list_id, slug),
+            FOREIGN KEY(list_id) REFERENCES pattern_list (id)
+        )
+        """
+    )
+    conn.execute("CREATE INDEX ix_pattern_problem_list_id ON pattern_problem (list_id)")
+
+
 Migration = Callable[[sqlite3.Connection], None]
 
 MIGRATIONS: list[Migration] = [
     add_solution_fields,  # 1
     add_review_table,  # 2
+    add_pattern_tables,  # 3
 ]
 
 LATEST_VERSION = len(MIGRATIONS)

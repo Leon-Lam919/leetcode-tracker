@@ -97,3 +97,19 @@ class ReviewDue(BaseModel):
 class ReviewDayCount(BaseModel):
     date: date
     count: int
+
+
+class PatternProblemOut(BaseModel):
+    slug: str
+    title: str
+    difficulty: str
+    url: str
+    solved: bool
+    needs_review: bool  # flagged on a solve, or due in the review queue
+
+
+class PatternGroup(BaseModel):
+    pattern: str
+    total: int
+    solved: int
+    problems: list[PatternProblemOut]

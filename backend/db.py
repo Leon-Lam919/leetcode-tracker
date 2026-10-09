@@ -9,6 +9,7 @@ from sqlmodel import Session, SQLModel, create_engine
 
 from config import settings
 from migrations import is_fresh_database, run_migrations, stamp_latest
+from services.patterns import seed_lists
 
 # check_same_thread=False: FastAPI may use the connection from a different thread
 # than the one that opened it. That is safe here because each request gets its own session.
@@ -34,6 +35,7 @@ def create_db_and_tables() -> None:
         # then let create_all add any table that is still missing.
         run_migrations(engine)
         SQLModel.metadata.create_all(engine)
+    seed_lists(engine)
     logger.info("Database ready at {}", engine.url)
 
 

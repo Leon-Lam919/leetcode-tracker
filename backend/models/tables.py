@@ -48,3 +48,28 @@ class Review(SQLModel, table=True):
     next_review_date: date | None = Field(default=None, index=True)  # local date; None = mastered
     last_reviewed_date: date
     last_confidence: int | None = None  # from the latest review or re-solve
+
+
+class PatternList(SQLModel, table=True):
+    """A named list of problems grouped by pattern, e.g. "NeetCode 150"."""
+
+    __tablename__ = "pattern_list"
+
+    id: int | None = Field(default=None, primary_key=True)
+    name: str = Field(unique=True)
+
+
+class PatternProblem(SQLModel, table=True):
+    """One problem in a pattern list. Matched to solves by slug, not by a foreign key,
+    because most listed problems haven't been solved (so aren't in `problem`) yet."""
+
+    __tablename__ = "pattern_problem"
+    __table_args__ = (UniqueConstraint("list_id", "slug"),)
+
+    id: int | None = Field(default=None, primary_key=True)
+    list_id: int = Field(foreign_key="pattern_list.id", index=True)
+    slug: str
+    title: str
+    difficulty: str
+    pattern: str  # e.g. "Two Pointers"
+    position: int  # order within the whole list (NeetCode order)
