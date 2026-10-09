@@ -1,0 +1,39 @@
+"""App settings, read from environment variables or the repo-root .env file."""
+
+from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# .env sits at the repo root, one level above backend/.
+# In Docker, docker-compose passes the same values as real env vars instead.
+ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=ENV_FILE, extra="ignore")
+
+    leetcode_username: str = ""
+    tz: str = "America/Toronto"
+    database_url: str = "sqlite:///./data/tracker.db"
+    daily_goal: int = Field(default=1, ge=1)
+
+    @field_validator("tz")
+    @classmethod
+    def check_timezone(cls, value: str) -> str:
+        """Fail at startup if TZ is not a real IANA name like 'America/Toronto'."""
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError) as error:
+            raise ValueError(
+                f"TZ={value!r} is not a valid IANA timezone (example: America/Toronto)"
+            ) from error
+        return value
+
+    @property
+    def zone(self) -> ZoneInfo:
+        return ZoneInfo(self.tz)
+
+
+settings = Settings()

@@ -4,6 +4,8 @@
 # Lets tests do `from main import app` without installing the package.
 pythonpath = ["."]
 testpaths = ["tests"]
+# Starlette suggests the "httpx2" package for TestClient; the plan uses httpx, which still works.
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]
 
 [tool.ruff]
 line-length = 100
