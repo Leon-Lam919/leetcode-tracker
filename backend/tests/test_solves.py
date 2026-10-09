@@ -130,3 +130,28 @@ def test_delete(client):
 def test_solved_date_is_a_plain_date(client):
     body = add(client, solved_date="2026-03-08").json()
     assert date.fromisoformat(body["solved_date"]) == date(2026, 3, 8)
+
+
+def test_patch_round_trips_solution_fields(client):
+    solve_id = add(client).json()["id"]
+    assert client.get("/api/solves").json()[0]["language"] == "python3"  # default
+
+    solution = {
+        "approach": "hash map of value -> index, one pass",
+        "code": "def twoSum(nums, target):\n    seen = {}\n",
+        "language": "java",
+        "time_complexity": "O(n)",
+        "space_complexity": "O(n)",
+    }
+    response = client.patch(f"/api/solves/{solve_id}", json=solution)
+    assert response.status_code == 200
+
+    saved = client.get("/api/solves").json()[0]
+    assert {field: saved[field] for field in solution} == solution
+    assert saved["notes"] == ""  # untouched
+
+
+def test_patch_rejects_overlong_complexity(client):
+    solve_id = add(client).json()["id"]
+    response = client.patch(f"/api/solves/{solve_id}", json={"time_complexity": "O" * 51})
+    assert response.status_code == 422

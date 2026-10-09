@@ -4,12 +4,32 @@ import { deleteSolve, updateSolve } from '../api'
 const inputClass =
   'w-full rounded border border-gray-300 bg-white p-2 dark:border-gray-600 dark:bg-gray-800'
 
+const LANGUAGES = ['python3', 'java', 'cpp', 'javascript', 'typescript', 'go', 'c', 'csharp']
+const INDENT = '    '
+
+// Empty text boxes are saved as null, so "nothing written" is stored the same way every time.
+const orNull = (text) => (text.trim() === '' ? null : text)
+
+// Make Tab insert spaces in the code box instead of jumping to the next field.
+function indentOnTab(event, setCode) {
+  if (event.key !== 'Tab' || event.shiftKey) return
+  event.preventDefault()
+  const box = event.target
+  box.setRangeText(INDENT, box.selectionStart, box.selectionEnd, 'end')
+  setCode(box.value)
+}
+
 export default function NoteEditor({ solve, onSaved, onClose }) {
   // Form fields are strings while editing; they're converted when saving.
   const [timeSpent, setTimeSpent] = useState(solve.time_spent_min?.toString() ?? '')
   const [confidence, setConfidence] = useState(solve.confidence?.toString() ?? '')
   const [notes, setNotes] = useState(solve.notes)
   const [needsReview, setNeedsReview] = useState(solve.needs_review)
+  const [approach, setApproach] = useState(solve.approach ?? '')
+  const [language, setLanguage] = useState(solve.language ?? 'python3')
+  const [code, setCode] = useState(solve.code ?? '')
+  const [timeComplexity, setTimeComplexity] = useState(solve.time_complexity ?? '')
+  const [spaceComplexity, setSpaceComplexity] = useState(solve.space_complexity ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -33,6 +53,11 @@ export default function NoteEditor({ solve, onSaved, onClose }) {
         confidence: confidence === '' ? null : Number(confidence),
         notes,
         needs_review: needsReview,
+        approach: orNull(approach),
+        language,
+        code: orNull(code),
+        time_complexity: orNull(timeComplexity),
+        space_complexity: orNull(spaceComplexity),
       }),
     )
   }
@@ -92,6 +117,64 @@ export default function NoteEditor({ solve, onSaved, onClose }) {
           className={inputClass}
         />
       </label>
+
+      <fieldset className="space-y-3 border-t border-gray-200 pt-3 dark:border-gray-700">
+        <legend className="text-sm font-semibold">Solution</legend>
+        <label className="block text-sm">
+          Approach
+          <input
+            value={approach}
+            onChange={(event) => setApproach(event.target.value)}
+            placeholder="e.g. hash map of value → index, one pass"
+            className={inputClass}
+          />
+        </label>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <label className="text-sm">
+            Language
+            <select
+              value={language}
+              onChange={(event) => setLanguage(event.target.value)}
+              className={inputClass}
+            >
+              {LANGUAGES.map((name) => (
+                <option key={name}>{name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm">
+            Time complexity
+            <input
+              value={timeComplexity}
+              onChange={(event) => setTimeComplexity(event.target.value)}
+              placeholder="O(n)"
+              className={inputClass}
+            />
+          </label>
+          <label className="text-sm">
+            Space complexity
+            <input
+              value={spaceComplexity}
+              onChange={(event) => setSpaceComplexity(event.target.value)}
+              placeholder="O(n)"
+              className={inputClass}
+            />
+          </label>
+        </div>
+
+        <label className="block text-sm">
+          Code
+          <textarea
+            rows={8}
+            value={code}
+            spellCheck={false}
+            onChange={(event) => setCode(event.target.value)}
+            onKeyDown={(event) => indentOnTab(event, setCode)}
+            className={`${inputClass} font-mono text-xs`}
+          />
+        </label>
+      </fieldset>
 
       <label className="flex items-center gap-2 text-sm">
         <input

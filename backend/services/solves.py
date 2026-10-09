@@ -37,6 +37,11 @@ def to_solve_out(solve: Solve, problem: Problem) -> SolveOut:
         confidence=solve.confidence,
         notes=solve.notes,
         needs_review=solve.needs_review,
+        approach=solve.approach,
+        code=solve.code,
+        language=solve.language,
+        time_complexity=solve.time_complexity,
+        space_complexity=solve.space_complexity,
     )
 
 

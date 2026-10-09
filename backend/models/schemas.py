@@ -19,6 +19,11 @@ class SolveOut(BaseModel):
     confidence: int | None
     notes: str
     needs_review: bool
+    approach: str | None
+    code: str | None
+    language: str | None
+    time_complexity: str | None
+    space_complexity: str | None
 
 
 class NoteFields(BaseModel):
@@ -40,7 +45,12 @@ class SolveCreate(NoteFields):
 
 
 class SolveUpdate(NoteFields):
-    pass
+    # How it was solved. Only editable after the solve exists.
+    approach: str | None = None
+    code: str | None = None
+    language: str | None = Field(default=None, max_length=30)
+    time_complexity: str | None = Field(default=None, max_length=50)
+    space_complexity: str | None = Field(default=None, max_length=50)
 
 
 class HeatmapDay(BaseModel):

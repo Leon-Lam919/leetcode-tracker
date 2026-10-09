@@ -8,6 +8,7 @@ from loguru import logger
 from sqlmodel import Session, SQLModel, create_engine
 
 from config import settings
+from migrations import is_fresh_database, run_migrations, stamp_latest
 
 # check_same_thread=False: FastAPI may use the connection from a different thread
 # than the one that opened it. That is safe here because each request gets its own session.
@@ -15,7 +16,7 @@ engine = create_engine(settings.database_url, connect_args={"check_same_thread":
 
 
 def create_db_and_tables() -> None:
-    """Create the SQLite file's folder (if needed) and all tables."""
+    """Create the SQLite file's folder (if needed), then create or upgrade the tables."""
     # Import the models so SQLModel knows which tables exist.
     import models.tables  # noqa: F401
 
@@ -23,7 +24,16 @@ def create_db_and_tables() -> None:
     if db_path and db_path != ":memory:":
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
 
-    SQLModel.metadata.create_all(engine)
+    if is_fresh_database(engine):
+        # New database: build every table from the current models, then record
+        # that all migrations are already "applied".
+        SQLModel.metadata.create_all(engine)
+        stamp_latest(engine)
+    else:
+        # Existing database: upgrade it first (adds columns create_all can't),
+        # then let create_all add any table that is still missing.
+        run_migrations(engine)
+        SQLModel.metadata.create_all(engine)
     logger.info("Database ready at {}", engine.url)
 
 

@@ -6,7 +6,7 @@ so problems and solves are separate tables.
 
 from datetime import date, datetime
 
-from sqlmodel import Field, SQLModel, UniqueConstraint
+from sqlmodel import Field, SQLModel, Text, UniqueConstraint
 
 
 class Problem(SQLModel, table=True):
@@ -31,3 +31,9 @@ class Solve(SQLModel, table=True):
     confidence: int | None = None  # 1 = needed help, 3 = solved cleanly
     notes: str = ""
     needs_review: bool = False
+    # Solution fields (v2). Added to older databases by migrations.py.
+    approach: str | None = Field(default=None, sa_type=Text)  # e.g. "hash map, one pass"
+    code: str | None = Field(default=None, sa_type=Text)
+    language: str | None = Field(default="python3", sa_column_kwargs={"server_default": "python3"})
+    time_complexity: str | None = None  # e.g. "O(n)"
+    space_complexity: str | None = None

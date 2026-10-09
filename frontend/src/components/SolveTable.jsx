@@ -37,6 +37,11 @@ export default function SolveTable({ solves, onSelect }) {
                 >
                   {solve.title}
                 </a>
+                {(solve.approach || solve.code) && (
+                  <span title="Has a written solution" className="ml-1">
+                    📝
+                  </span>
+                )}
                 <div className="mt-1">
                   <DifficultyBadge difficulty={solve.difficulty} />
                 </div>
