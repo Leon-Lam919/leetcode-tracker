@@ -29,3 +29,4 @@
 |---|---|---|
 | 1 | Rating sets the first review | Changing a rule in one narrow case without breaking the others: a small named function with a docstring that explains *why*, plus tests for the case that changes and for the cases that must not. |
 | 2 | One-click rating in the UI | Pulling a shared constant (`ratings.js`) and a small reusable component (`RatingButtons`) out of one file so four screens stay consistent, `stopPropagation` to keep a click inside a clickable row, and testing the exact request body a click sends. |
+| 3 | README and scope change | Updating docs with the feature, and handling a cancelled feature cleanly: mark it cancelled in the spec instead of deleting it, so the history of the decision stays readable. |

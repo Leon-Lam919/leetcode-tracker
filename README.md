@@ -7,7 +7,8 @@ A small full-stack app for a simple habit: **solve one LeetCode problem a day.**
 It shows whether today is done, keeps your streak, draws a 90-day heatmap, and
 stores notes on each solve so you can review problems later. v2 adds interview prep:
 a spaced-repetition review queue, the NeetCode 150 pattern checklist, written solutions,
-and an automatic sync with an evening reminder on your phone.
+and an automatic sync with an evening reminder on your phone. v3 makes rating a solve
+take one click, right when it arrives.
 
 ![Screenshot](docs/screenshot.png)
 <!-- Screenshot placeholders: add docs/screenshot.png (Today tab),
@@ -24,6 +25,13 @@ and an automatic sync with an evening reminder on your phone.
 - **Review queue (v2):** spaced repetition per problem (1, 3, 7, 14, 30 days). Rate each review **Again / Good / Easy**; re-solving a problem on a later day counts as a review
 - **Patterns tab (v2):** NeetCode 150 grouped into its 18 patterns, with progress bars and ✅ for solved problems
 - **Auto-sync + reminder (v2):** syncs every few hours and, at a set time, sends a phone notification through [ntfy](https://ntfy.sh) if today isn't done yet
+- **Quick rating (v3):** a "✍️ Rate today's solves" card lists recent solves with no confidence.
+  One click on **Again / Good / Easy** saves the rating, the 🔁 review flag and an optional time
+  chip (15 / 30 / 45 / 60+ min). "Skip" hides a row until you reload. You can also rate while adding
+  a solve by hand, or with the "Rate" chip in the solves table
+- **Rating sets the first review (v3):** rating a problem's first solve (before it has been reviewed)
+  sets its first review: Again or Good → tomorrow, Easy → in 3 days. Otherwise changing a rating
+  doesn't move the schedule
 - Works on a phone (375px) and in dark mode
 
 ## Stack
@@ -151,8 +159,9 @@ v2 adds `review` (one row per problem: interval index, next review date), `patte
 **API.** `GET /api/health`, `GET|POST /api/solves`, `PATCH|DELETE /api/solves/{id}`,
 `GET /api/stats`, `GET /api/heatmap?days=90`, `POST /api/sync`, and in v2
 `GET /api/reviews/due`, `GET /api/reviews/upcoming?days=7`, `POST /api/reviews/{problem_id}`
-(`{"confidence": 1-3}`), `GET /api/patterns?list=neetcode150`, `POST /api/notify/test`.
-See `PLAN.md` §5, `PLAN_V2.md`, or `/docs`.
+(`{"confidence": 1-3}`), `GET /api/patterns?list=neetcode150`, `POST /api/notify/test`, and in v3
+`GET /api/solves/unrated?days=7` (solves with no confidence from the last N local days, newest first).
+See `PLAN.md` §5, `PLAN_V2.md`, `PLAN_V3.md`, or `/docs`.
 
 ## About the LeetCode API
 LeetCode has no official public API. This app uses the same GraphQL endpoint the website
