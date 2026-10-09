@@ -7,7 +7,7 @@ v2 adds five features. The goal is interview prep: re-solving problems, covering
 
 ## 2. Ground rules
 - **Tracker:** create branch `build/v2` from `build/mvp`. Commit `PLAN_V2.md` first.
-- **Dashboard (feature 5 only):** in `~/dashboard`, create branch `leetcode-widget` from `master`.
+- **Dashboard (feature 5 only): Cancelled by owner.** ~~in `~/dashboard`, create branch `leetcode-widget` from `master`.~~ Do not access `~/dashboard`.
   - **Never push.** `~/dashboard/.github/workflows/deploy.yml` deploys to a Raspberry Pi on every push to `master`.
   - Don't merge, and don't touch `news-widget-feat` or any other branch.
 - Small commits, imperative messages under 60 characters, each ending with a blank line then `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
@@ -25,7 +25,7 @@ Do schema changes first, because features 1 and 4 both add columns.
 | B | Feature 1: review queue | 1.5 h |
 | C | Feature 2: pattern checklist | 1.5 h |
 | D | Feature 3: auto-sync + reminder | 1 h |
-| E | Feature 5: dashboard widget | 1 h |
+| E | Feature 5: tracker side only (dashboard part cancelled by owner) | 15 min |
 
 ## 4. Migrations (`backend/migrations.py`)
 `SQLModel.metadata.create_all` creates new tables but **doesn't add columns to existing ones**. The owner's DB already has data, so:
@@ -138,29 +138,31 @@ Backfill existing problems on migration: one review row each, based on their lat
   - `REMINDER_TIME` parsing rejects bad values.
 
 ## 9. Feature 5: dashboard widget (`~/dashboard`)
-Before writing anything, read `~/dashboard/frontend/src/App.jsx` and `src/components/news/*` and match their structure, Tailwind style, and data fetching exactly.
+> **Cancelled by owner:** the dashboard side below (everything that touches `~/dashboard`). Only the tracker side is built.
+
+~~Before writing anything, read `~/dashboard/frontend/src/App.jsx` and `src/components/news/*` and match their structure, Tailwind style, and data fetching exactly.~~
 
 - **Tracker side** (`build/v2`): add a `CORS_ORIGINS` env var (comma-separated), defaulting to `http://localhost:5173`. Document adding the dashboard's origin.
   - The tracker's frontend also uses 5173. Move the tracker's dev frontend to **5174** in `vite.config.js`, compose, and the README, so both can run at once. Update `CORS_ORIGINS` to match.
-- **Dashboard side** (`leetcode-widget` branch, **frontend only**; don't modify the dashboard backend):
+- **Dashboard side — Cancelled by owner** (`leetcode-widget` branch, **frontend only**; don't modify the dashboard backend):
   - `frontend/src/components/leetcode/LeetCodeWidget.jsx` fetches `${VITE_LEETCODE_TRACKER_URL}/api/stats`.
   - It shows ✅/❌ today, the 🔥 streak, the reviews due, and a link to open the tracker.
   - It refreshes every 5 minutes.
   - When the tracker is unreachable, it shows a quiet "Tracker offline" state and doesn't break the page.
   - Add it to `App.jsx` next to the news widget.
   - Add `VITE_LEETCODE_TRACKER_URL=http://localhost:8000` to `frontend/.env.development`. Leave `.env.production` with a commented placeholder, because the Pi's tracker URL is unknown.
-- **Check:** `npm run build` and `npm run lint` pass in `~/dashboard/frontend`. Run both apps locally and confirm the widget shows live data, and shows the offline state with the tracker stopped.
+- **Check (cancelled by owner):** `npm run build` and `npm run lint` pass in `~/dashboard/frontend`. Run both apps locally and confirm the widget shows live data, and shows the offline state with the tracker stopped.
 - In the final report, list exactly which dashboard files changed. The owner reviews dashboard code closely.
 
 ## 10. Definition of done
-- [ ] All tracker tests pass, and the counts are reported. Lint is clean in both repos.
+- [ ] All tracker tests pass, and the counts are reported. Lint is clean in the tracker (dashboard lint cancelled by owner).
 - [ ] The migration upgrades a v1 DB without data loss (tested), and the owner's real `backend/data/tracker.db` upgrades on startup.
 - [ ] After a sync, Two Sum shows in the review queue tomorrow (shown in a test with a faked "today").
 - [ ] Pattern tab shows 150 problems across 18 patterns. Two Sum is ✅ under Arrays & Hashing.
 - [ ] With `ENABLE_SCHEDULER=true` and a short interval set temporarily, the scheduled sync runs and `last_sync_at` updates. Restore the defaults afterward.
 - [ ] No real notification is sent.
-- [ ] Dashboard widget shows live tracker data, and shows "Tracker offline" when the tracker is stopped.
-- [ ] Nothing pushed; `~/dashboard` changes only on `leetcode-widget`.
+- [ ] ~~Dashboard widget shows live tracker data, and shows "Tracker offline" when the tracker is stopped.~~ Cancelled by owner.
+- [ ] Nothing pushed; `~/dashboard` not touched (dashboard work cancelled by owner).
 - [ ] The README and `LEARNING.md` are updated.
 
 ## 11. Final report
@@ -169,6 +171,6 @@ Before writing anything, read `~/dashboard/frontend/src/App.jsx` and `src/compon
 3. New env vars.
 4. How to run both apps together.
 5. Seed verification result (how many slugs were fixed).
-6. Dashboard files changed.
+6. Dashboard files changed (none: cancelled by owner).
 7. Deviations.
 8. Anything unfinished, with the error text.
