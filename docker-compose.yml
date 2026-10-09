@@ -1,0 +1,28 @@
+services:
+  backend:
+    build: ./backend
+    env_file: .env
+    volumes:
+      # The SQLite file lives on the host, so data survives rebuilds and restarts.
+      - ./backend/data:/app/data
+    healthcheck:
+      # python:3.12-slim has no curl, so use Python to call the health route.
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
