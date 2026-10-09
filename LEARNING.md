@@ -36,3 +36,9 @@
 | # | Step | Skill it shows |
 |---|---|---|
 | 1 | GitHub Actions daily reminder | Scheduled workflows (cron in UTC, late starts, the 60-day disable rule), secrets vs. variables, and a small CLI that reuses existing services with exit codes a CI run can show as red or green. |
+
+## v5
+
+| # | Step | Skill it shows |
+|---|---|---|
+| 1 | Discord reminders | Refactoring behind a stable public API (`send()` keeps its contract while gaining a second channel), partial-failure handling (succeed if any channel works), honouring a rate limit with one capped retry on HTTP 429, and treating a URL as a secret: validation errors and logs never echo it. |

@@ -21,7 +21,7 @@ sends a reminder to your phone.
 - **Today banner:** ✅ done or ❌ not yet, with your current 🔥 streak and best streak
 - **Sync from LeetCode:** pulls your recent accepted submissions. Safe to click twice: it never duplicates a solve.
 - **90-day heatmap:** one square per day, plus totals by difficulty and topic
-- **Phone reminders:** a push notification through [ntfy](https://ntfy.sh) if today isn't done. It can come from the app itself or from a free GitHub Actions job that runs even when your computer is off.
+- **Phone reminders:** a push notification through [ntfy](https://ntfy.sh) and/or a Discord message if today isn't done. It can come from the app itself or from a free GitHub Actions job that runs even when your computer is off.
 
 **Learning, not just counting**
 - **One-click rating:** new solves show up on a "Rate today's solves" card. Click **Again / Good / Easy**, optionally flag it for review and pick a time chip, and it's saved.
@@ -36,9 +36,9 @@ sends a reminder to your phone.
 | Layer | Tools | Why |
 |---|---|---|
 | Backend | Python 3.12, FastAPI, SQLModel on SQLite | Typed models, automatic API docs at `/docs`, and a database that's a single file |
-| Background jobs | APScheduler, httpx, ntfy | Auto-sync and the evening reminder run inside the app, with no extra services |
+| Background jobs | APScheduler, httpx, ntfy, Discord webhooks | Auto-sync and the evening reminder run inside the app, with no extra services |
 | Frontend | React 19, Vite 7, Tailwind CSS 3.4 | Fast dev server; the heatmap is plain CSS grid with no chart library |
-| Tests | pytest + respx, Vitest + React Testing Library | 141 backend and 37 frontend tests. Tests never touch the network: LeetCode and ntfy are faked. |
+| Tests | pytest + respx, Vitest + React Testing Library | 167 backend and 37 frontend tests. Tests never touch the network: LeetCode, ntfy and Discord are faked. |
 | CI/CD | GitHub Actions | Lint, test and build run on every push. A scheduled job sends the daily reminder. |
 | Infra | Docker Compose, nginx | One command runs everything. nginx serves the frontend and forwards `/api` to the backend. |
 
@@ -53,7 +53,7 @@ Browser (React)  ──fetch /api──▶  FastAPI
                                     │     streaks.py           pure functions: streak math
                                     │     review_schedule.py   pure functions: spaced repetition
                                     │     scheduler.py         auto-sync + evening reminder
-                                    │     notify.py            ntfy push notifications
+                                    │     notify.py            ntfy + Discord reminders
                                     ├── migrations.py   numbered schema upgrades, run on startup
                                     └── SQLite  backend/data/tracker.db
 
@@ -120,7 +120,9 @@ All settings live in `.env` (see `.env.example`).
 | `ENABLE_SCHEDULER` | `false` | `true` turns on auto-sync and the in-app reminder |
 | `SYNC_INTERVAL_HOURS` | `3` | Hours between automatic syncs |
 | `REMINDER_TIME` | `20:00` | When the in-app reminder checks, in 24-hour time in `TZ` |
-| `NTFY_SERVER` / `NTFY_TOPIC` | `https://ntfy.sh` / empty | Where reminders go. An empty topic means no notifications. |
+| `NTFY_SERVER` / `NTFY_TOPIC` | `https://ntfy.sh` / empty | Where ntfy reminders go. An empty topic means ntfy is off. |
+| `DISCORD_WEBHOOK_URL` | empty | Discord channel webhook URL. Empty means Discord is off. **A secret:** anyone with the URL can post to the channel, so it is never logged. |
+| `DISCORD_USER_ID` | empty | Optional numeric user ID. If set, the message starts with an @mention, so Discord pings your phone. |
 | `CORS_ORIGINS` | `http://localhost:5174` | Other browser apps allowed to call the API, comma-separated |
 
 ## Phone reminders
@@ -140,7 +142,26 @@ Notes:
 - GitHub pauses scheduled workflows after 60 days without a commit. Re-enable it from the Actions tab.
 - To test locally without sending anything: `cd backend && LEETCODE_USERNAME=you python scripts/daily_check.py --dry-run`
 
-**Option 2: in-app.** Set `ENABLE_SCHEDULER=true` and `NTFY_TOPIC` in `.env`, restart the backend, then test with `curl -X POST http://localhost:8000/api/notify/test`. This only works while the backend is running.
+**Option 2: in-app.** Set `ENABLE_SCHEDULER=true` and `NTFY_TOPIC` and/or `DISCORD_WEBHOOK_URL` in `.env`, restart the backend, then test with `curl -X POST http://localhost:8000/api/notify/test`. This only works while the backend is running.
+
+### Discord
+
+Discord works as a second channel next to ntfy: it arrives like a text message. Every reminder goes to every configured channel, so you can use ntfy, Discord, or both.
+
+1. In your Discord server: channel → ⚙️ **Edit Channel → Integrations → Webhooks → New Webhook → Copy Webhook URL**.
+2. Add the GitHub secret `DISCORD_WEBHOOK_URL` (Settings → Secrets and variables → Actions).
+   - Locally, put it in `.env`.
+   - It's a secret, because anyone with the URL can post to the channel.
+3. Optional, for a real phone ping:
+   - Discord **Settings → Advanced → Developer Mode** on.
+   - Right-click your name → **Copy User ID**.
+   - Add the GitHub variable `DISCORD_USER_ID` (and/or put it in `.env`).
+4. Test it: **Actions → Daily reminder → Run workflow** with `force` on.
+
+Notes:
+- Both channels can be on together. If one fails, the other still gets the reminder.
+- The server's notification settings must allow mentions to reach your phone. With `DISCORD_USER_ID` set, "Only @mentions" is enough.
+- Dry run without sending: `cd backend && LEETCODE_USERNAME=you DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/0/fake python scripts/daily_check.py --dry-run` prints the channels it would use, never the URL.
 
 ## Limits of the LeetCode API
 
