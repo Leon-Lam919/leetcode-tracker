@@ -1,7 +1,9 @@
 """Database engine and session helpers."""
 
 from pathlib import Path
+from typing import Annotated
 
+from fastapi import Depends
 from loguru import logger
 from sqlmodel import Session, SQLModel, create_engine
 
@@ -29,3 +31,7 @@ def get_session():
     """FastAPI dependency: one session per request, closed afterwards."""
     with Session(engine) as session:
         yield session
+
+
+# Shorthand for route parameters: `session: SessionDep` gives the route a DB session.
+SessionDep = Annotated[Session, Depends(get_session)]
