@@ -32,6 +32,7 @@ def test_empty_stats(client):
         "total_solved": 0,
         "by_difficulty": {"Easy": 0, "Medium": 0, "Hard": 0},
         "by_topic": {},
+        "reviews_due": 0,
     }
 
 

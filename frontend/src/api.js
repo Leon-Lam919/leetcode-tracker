@@ -58,3 +58,15 @@ export function deleteSolve(id) {
 export function syncNow() {
   return request('/sync', { method: 'POST' })
 }
+
+export function getDueReviews() {
+  return request('/reviews/due')
+}
+
+// confidence: 1 = again, 2 = good, 3 = easy
+export function markReviewed(problemId, confidence) {
+  return request(`/reviews/${problemId}`, {
+    method: 'POST',
+    body: JSON.stringify({ confidence }),
+  })
+}

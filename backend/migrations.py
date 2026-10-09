@@ -34,10 +34,47 @@ def add_solution_fields(conn: sqlite3.Connection) -> None:
     conn.execute("ALTER TABLE solve ADD COLUMN space_complexity VARCHAR")
 
 
+def add_review_table(conn: sqlite3.Connection) -> None:
+    """v2 feature 1: spaced-repetition schedule, one row per problem."""
+    conn.execute(
+        """
+        CREATE TABLE review (
+            id INTEGER NOT NULL,
+            problem_id INTEGER NOT NULL,
+            interval_index INTEGER NOT NULL,
+            next_review_date DATE,
+            last_reviewed_date DATE NOT NULL,
+            last_confidence INTEGER,
+            PRIMARY KEY (id),
+            UNIQUE (problem_id),
+            FOREIGN KEY(problem_id) REFERENCES problem (id)
+        )
+        """
+    )
+    conn.execute("CREATE INDEX ix_review_next_review_date ON review (next_review_date)")
+    # Backfill: every problem already solved gets a review the day after its latest solve.
+    conn.execute(
+        """
+        INSERT INTO review
+            (problem_id, interval_index, next_review_date, last_reviewed_date, last_confidence)
+        SELECT
+            latest.problem_id,
+            0,
+            date(latest.last_date, '+1 day'),
+            latest.last_date,
+            (SELECT s.confidence FROM solve s
+             WHERE s.problem_id = latest.problem_id AND s.solved_date = latest.last_date)
+        FROM (SELECT problem_id, MAX(solved_date) AS last_date FROM solve GROUP BY problem_id)
+            AS latest
+        """
+    )
+
+
 Migration = Callable[[sqlite3.Connection], None]
 
 MIGRATIONS: list[Migration] = [
     add_solution_fields,  # 1
+    add_review_table,  # 2
 ]
 
 LATEST_VERSION = len(MIGRATIONS)

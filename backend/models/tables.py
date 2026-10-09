@@ -37,3 +37,14 @@ class Solve(SQLModel, table=True):
     language: str | None = Field(default="python3", sa_column_kwargs={"server_default": "python3"})
     time_complexity: str | None = None  # e.g. "O(n)"
     space_complexity: str | None = None
+
+
+class Review(SQLModel, table=True):
+    """When to look at a problem again (spaced repetition). One row per problem, not per solve."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    problem_id: int = Field(foreign_key="problem.id", unique=True)
+    interval_index: int = 0  # index into review_schedule.INTERVALS
+    next_review_date: date | None = Field(default=None, index=True)  # local date; None = mastered
+    last_reviewed_date: date
+    last_confidence: int | None = None  # from the latest review or re-solve

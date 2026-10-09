@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from sqlmodel import Session
 
 from models.tables import Problem, Solve
-from services import leetcode_client
+from services import leetcode_client, reviews
 from services.clock import to_local_date
 from services.problems import create_problem, find_problem
 from services.solves import solve_exists
@@ -39,7 +39,9 @@ def sync_recent(session: Session, username: str) -> SyncResult:
 
     added = 0
     skipped = 0
-    for submission in submissions:
+    # Oldest first, so a problem's first solve starts its review schedule
+    # and later solves count as reviews.
+    for submission in sorted(submissions, key=lambda item: item.solved_at):
         problem = get_or_create_problem(session, submission.title_slug)
         solved_date = to_local_date(submission.solved_at)
 
@@ -56,6 +58,8 @@ def sync_recent(session: Session, username: str) -> SyncResult:
             )
         )
         session.flush()  # so the next solve_exists() check sees this row
+        reviews.on_solve_added(session, problem.id, solved_date, confidence=None)
+        session.flush()
         added += 1
 
     # Commit once at the end: if LeetCode fails halfway, nothing is half-saved.

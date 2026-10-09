@@ -9,6 +9,7 @@ from loguru import logger
 from config import settings
 from db import create_db_and_tables
 from routers.health import router as health_router
+from routers.reviews import router as reviews_router
 from routers.solves import router as solves_router
 from routers.stats import router as stats_router
 from routers.sync import router as sync_router
@@ -34,6 +35,7 @@ app.add_middleware(
 )
 
 app.include_router(health_router, prefix="/api")
+app.include_router(reviews_router, prefix="/api")
 app.include_router(solves_router, prefix="/api")
 app.include_router(stats_router, prefix="/api")
 app.include_router(sync_router, prefix="/api")

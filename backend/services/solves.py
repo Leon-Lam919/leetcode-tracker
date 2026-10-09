@@ -7,7 +7,7 @@ from sqlmodel import Session, select
 
 from models.schemas import SolveCreate, SolveOut, SolveUpdate
 from models.tables import Problem, Solve
-from services import leetcode_client
+from services import leetcode_client, reviews
 from services.clock import today_local, utc_now
 from services.problems import create_problem, find_problem
 
@@ -110,6 +110,7 @@ def create_manual_solve(session: Session, data: SolveCreate) -> SolveOut:
         needs_review=bool(data.needs_review),
     )
     session.add(solve)
+    reviews.on_solve_added(session, problem.id, solved_date, data.confidence)
     session.commit()
     session.refresh(solve)
     return to_solve_out(solve, problem)
@@ -141,5 +142,7 @@ def delete_solve(session: Session, solve_id: int) -> bool:
     if solve is None:
         return False
     session.delete(solve)
+    session.flush()
+    reviews.remove_if_unsolved(session, solve.problem_id)
     session.commit()
     return True

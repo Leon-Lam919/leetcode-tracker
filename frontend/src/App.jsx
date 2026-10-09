@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { getHeatmap, getSolves, getStats } from './api'
+import { getDueReviews, getHeatmap, getSolves, getStats } from './api'
 import { useFetch } from './hooks/useFetch'
 import AddSolveForm from './components/AddSolveForm'
 import Filters from './components/Filters'
 import Heatmap from './components/Heatmap'
 import NoteEditor from './components/NoteEditor'
+import ReviewQueue from './components/ReviewQueue'
 import SolveTable from './components/SolveTable'
 import StatsPanel from './components/StatsPanel'
 import Status from './components/Status'
@@ -25,6 +26,7 @@ export default function App() {
   const stats = useFetch(getStats, version)
   const heatmap = useFetch(getHeatmap, version)
   const solves = useFetch(getSolves, version, filters)
+  const reviews = useFetch(getDueReviews, version)
 
   const topics = Object.keys(stats.data?.by_topic ?? {}).sort()
 
@@ -44,6 +46,12 @@ export default function App() {
         <Status {...stats}>
           <TodayBanner stats={stats.data} />
         </Status>
+
+        <section className={card}>
+          <Status {...reviews}>
+            <ReviewQueue reviews={reviews.data ?? []} onReviewed={refresh} />
+          </Status>
+        </section>
 
         <div className="grid gap-4 md:grid-cols-2">
           <section className={card}>

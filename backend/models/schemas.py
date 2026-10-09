@@ -67,3 +67,33 @@ class Stats(BaseModel):
     total_solved: int
     by_difficulty: dict[str, int]
     by_topic: dict[str, int]
+    reviews_due: int
+
+
+class ReviewCreate(BaseModel):
+    confidence: int = Field(ge=1, le=3)  # 1 = again, 2 = good, 3 = easy
+
+
+class ReviewOut(BaseModel):
+    problem_id: int
+    interval_index: int
+    next_review_date: date | None  # None = mastered
+    last_reviewed_date: date
+    last_confidence: int | None
+
+
+class ReviewDue(BaseModel):
+    problem_id: int
+    title: str
+    title_slug: str
+    difficulty: str
+    url: str
+    next_review_date: date
+    days_overdue: int
+    last_confidence: int | None
+    approach: str | None  # from the latest solve that has one
+
+
+class ReviewDayCount(BaseModel):
+    date: date
+    count: int

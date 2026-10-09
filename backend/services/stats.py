@@ -9,6 +9,7 @@ from sqlmodel import Session, select
 from config import settings
 from models.schemas import HeatmapDay, Stats
 from models.tables import Problem, Solve
+from services.reviews import count_due
 from services.streaks import current_streak, longest_streak
 
 DIFFICULTIES = ["Easy", "Medium", "Hard"]
@@ -38,6 +39,7 @@ def get_stats(session: Session, today: date) -> Stats:
         total_solved=len(solved_problems),
         by_difficulty=by_difficulty,
         by_topic=dict(topic_counts.most_common()),  # biggest first
+        reviews_due=count_due(session, today),
     )
 
 
