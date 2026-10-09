@@ -33,6 +33,8 @@ def test_empty_stats(client):
         "by_difficulty": {"Easy": 0, "Medium": 0, "Hard": 0},
         "by_topic": {},
         "reviews_due": 0,
+        "last_sync_at": None,
+        "last_sync_result": None,
     }
 
 

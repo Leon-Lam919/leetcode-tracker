@@ -44,7 +44,11 @@ export default function App() {
       <div className="mx-auto max-w-4xl space-y-4 p-4">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">LeetCode Tracker</h1>
-          <SyncButton onSynced={refresh} />
+          <SyncButton
+            onSynced={refresh}
+            lastSyncAt={stats.data?.last_sync_at}
+            lastSyncResult={stats.data?.last_sync_result}
+          />
         </header>
 
         <nav className="flex gap-2" aria-label="Sections">

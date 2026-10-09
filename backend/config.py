@@ -11,6 +11,17 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 
 
+def parse_reminder_time(value: str) -> tuple[int, int]:
+    """Turn "20:00" into (20, 0). Raises ValueError for anything that isn't a 24-hour HH:MM."""
+    hour_text, sep, minute_text = value.strip().partition(":")
+    if not (sep and hour_text.isdigit() and minute_text.isdigit() and len(minute_text) == 2):
+        raise ValueError(f"REMINDER_TIME={value!r} must look like 20:00 (24-hour HH:MM)")
+    hour, minute = int(hour_text), int(minute_text)
+    if not (0 <= hour <= 23 and 0 <= minute <= 59):
+        raise ValueError(f"REMINDER_TIME={value!r} is not a real time of day")
+    return hour, minute
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=ENV_FILE, extra="ignore")
 
@@ -18,6 +29,15 @@ class Settings(BaseSettings):
     tz: str = "America/Toronto"
     database_url: str = "sqlite:///./data/tracker.db"
     daily_goal: int = Field(default=1, ge=1)
+
+    # Background jobs (v2). Off by default; tests always run with them off.
+    enable_scheduler: bool = False
+    sync_interval_hours: float = Field(default=3, gt=0)
+    reminder_time: str = "20:00"
+
+    # Phone notifications through ntfy.sh. An empty topic means "don't send anything".
+    ntfy_server: str = "https://ntfy.sh"
+    ntfy_topic: str = ""
 
     @field_validator("tz")
     @classmethod
@@ -30,6 +50,16 @@ class Settings(BaseSettings):
                 f"TZ={value!r} is not a valid IANA timezone (example: America/Toronto)"
             ) from error
         return value
+
+    @field_validator("reminder_time")
+    @classmethod
+    def check_reminder_time(cls, value: str) -> str:
+        parse_reminder_time(value)
+        return value.strip()
+
+    @property
+    def reminder_hour_minute(self) -> tuple[int, int]:
+        return parse_reminder_time(self.reminder_time)
 
     @property
     def zone(self) -> ZoneInfo:

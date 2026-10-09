@@ -9,6 +9,7 @@ from sqlmodel import Session, select
 from config import settings
 from models.schemas import HeatmapDay, Stats
 from models.tables import Problem, Solve
+from services.meta import last_sync
 from services.reviews import count_due
 from services.streaks import current_streak, longest_streak
 
@@ -30,6 +31,8 @@ def get_stats(session: Session, today: date) -> Stats:
         by_difficulty[problem.difficulty] = by_difficulty.get(problem.difficulty, 0) + 1
         topic_counts.update(json.loads(problem.topics))
 
+    last_sync_at, last_sync_result = last_sync(session)
+
     return Stats(
         today_done=today_count >= settings.daily_goal,
         today_count=today_count,
@@ -40,6 +43,8 @@ def get_stats(session: Session, today: date) -> Stats:
         by_difficulty=by_difficulty,
         by_topic=dict(topic_counts.most_common()),  # biggest first
         reviews_due=count_due(session, today),
+        last_sync_at=last_sync_at,
+        last_sync_result=last_sync_result,
     )
 
 

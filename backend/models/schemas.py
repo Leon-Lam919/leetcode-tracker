@@ -68,6 +68,8 @@ class Stats(BaseModel):
     by_difficulty: dict[str, int]
     by_topic: dict[str, int]
     reviews_due: int
+    last_sync_at: datetime | None  # UTC; None if it has never synced
+    last_sync_result: str | None  # e.g. "added 1, skipped 19" or "failed: ..."
 
 
 class ReviewCreate(BaseModel):

@@ -12,6 +12,8 @@ os.environ["LEETCODE_USERNAME"] = "testuser"
 os.environ["TZ"] = "America/Toronto"
 os.environ["DAILY_GOAL"] = "1"
 os.environ["DATABASE_URL"] = "sqlite://"  # placeholder; replaced per test below
+os.environ["ENABLE_SCHEDULER"] = "false"  # background jobs never run in tests
+os.environ["NTFY_TOPIC"] = ""  # no real notifications, whatever the owner's .env says
 
 import json  # noqa: E402
 from pathlib import Path  # noqa: E402
@@ -107,4 +109,5 @@ def fake_leetcode():
     fake = FakeLeetCode()
     with respx.mock(assert_all_called=False) as router:
         router.post(GRAPHQL_URL).mock(side_effect=fake.handle)
+        fake.router = router  # tests can add more fake routes, e.g. for ntfy
         yield fake

@@ -9,11 +9,13 @@ from loguru import logger
 from config import settings
 from db import create_db_and_tables
 from routers.health import router as health_router
+from routers.notify import router as notify_router
 from routers.patterns import router as patterns_router
 from routers.reviews import router as reviews_router
 from routers.solves import router as solves_router
 from routers.stats import router as stats_router
 from routers.sync import router as sync_router
+from services.scheduler import build_scheduler
 
 
 @asynccontextmanager
@@ -22,7 +24,19 @@ async def lifespan(app: FastAPI):
     if not settings.leetcode_username:
         logger.warning("LEETCODE_USERNAME is not set; /api/sync will fail until it is")
     logger.info("Using timezone {}, daily goal {}", settings.tz, settings.daily_goal)
+
+    scheduler = None
+    if settings.enable_scheduler:
+        scheduler = build_scheduler()
+        scheduler.start()
+        logger.info(
+            "Scheduler on: sync every {}h, reminder at {}",
+            settings.sync_interval_hours,
+            settings.reminder_time,
+        )
     yield
+    if scheduler:
+        scheduler.shutdown(wait=False)
 
 
 app = FastAPI(title="LeetCode Tracker", lifespan=lifespan)
@@ -36,6 +50,7 @@ app.add_middleware(
 )
 
 app.include_router(health_router, prefix="/api")
+app.include_router(notify_router, prefix="/api")
 app.include_router(patterns_router, prefix="/api")
 app.include_router(reviews_router, prefix="/api")
 app.include_router(solves_router, prefix="/api")

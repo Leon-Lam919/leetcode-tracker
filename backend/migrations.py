@@ -101,12 +101,26 @@ def add_pattern_tables(conn: sqlite3.Connection) -> None:
     conn.execute("CREATE INDEX ix_pattern_problem_list_id ON pattern_problem (list_id)")
 
 
+def add_meta_table(conn: sqlite3.Connection) -> None:
+    """v2 feature 3: key-value app state (last sync time and result)."""
+    conn.execute(
+        """
+        CREATE TABLE meta (
+            "key" VARCHAR NOT NULL,
+            value VARCHAR NOT NULL,
+            PRIMARY KEY ("key")
+        )
+        """
+    )
+
+
 Migration = Callable[[sqlite3.Connection], None]
 
 MIGRATIONS: list[Migration] = [
     add_solution_fields,  # 1
     add_review_table,  # 2
     add_pattern_tables,  # 3
+    add_meta_table,  # 4
 ]
 
 LATEST_VERSION = len(MIGRATIONS)

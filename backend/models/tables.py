@@ -73,3 +73,10 @@ class PatternProblem(SQLModel, table=True):
     difficulty: str
     pattern: str  # e.g. "Two Pointers"
     position: int  # order within the whole list (NeetCode order)
+
+
+class Meta(SQLModel, table=True):
+    """Small key-value store for app state, e.g. when the last sync ran."""
+
+    key: str = Field(primary_key=True)
+    value: str

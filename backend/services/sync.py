@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from sqlmodel import Session
 
 from models.tables import Problem, Solve
-from services import leetcode_client, reviews
+from services import leetcode_client, meta, reviews
 from services.clock import to_local_date
 from services.problems import create_problem, find_problem
 from services.solves import solve_exists
@@ -65,3 +65,18 @@ def sync_recent(session: Session, username: str) -> SyncResult:
     # Commit once at the end: if LeetCode fails halfway, nothing is half-saved.
     session.commit()
     return SyncResult(added=added, skipped=skipped)
+
+
+def sync_and_record(session: Session, username: str) -> SyncResult:
+    """Run sync_recent and store when it ran and how it went (in the meta table).
+
+    A failed sync is recorded too, then the LeetCodeError is raised again.
+    """
+    try:
+        result = sync_recent(session, username)
+    except leetcode_client.LeetCodeError as error:
+        session.rollback()  # throw away anything half-added before saving the failure
+        meta.record_sync(session, f"failed: {error}")
+        raise
+    meta.record_sync(session, f"added {result.added}, skipped {result.skipped}")
+    return result
