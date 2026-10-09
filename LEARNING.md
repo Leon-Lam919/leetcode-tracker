@@ -22,3 +22,9 @@
 | C | NeetCode 150 checklist | Seed data checked into git, idempotent seeding on startup, verifying data against a real API with a rate-limited script, and grouping rows with a dict that keeps insertion order. |
 | D | Auto-sync + reminder | Background jobs with APScheduler (interval and cron triggers in a fixed timezone), "never crash" error handling in jobs, validating config at startup, and testing outgoing HTTP (ntfy) with `respx` so no real message is sent. |
 | E | CORS + port 5174 | What CORS is for (the browser blocking cross-origin calls unless the API allows that origin), keeping allowed origins in config instead of code, and avoiding port clashes when running two dev apps at once. The dashboard widget half was cancelled by the owner. |
+
+## v3
+
+| # | Step | Skill it shows |
+|---|---|---|
+| 1 | Rating sets the first review | Changing a rule in one narrow case without breaking the others: a small named function with a docstring that explains *why*, plus tests for the case that changes and for the cases that must not. |

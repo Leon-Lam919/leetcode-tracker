@@ -11,7 +11,7 @@ from sqlmodel import Session, func, select
 
 from models.schemas import ReviewDayCount, ReviewDue, ReviewOut
 from models.tables import Problem, Review, Solve
-from services.review_schedule import next_state
+from services.review_schedule import EASY, INTERVALS, next_state
 
 
 class NotInQueueError(Exception):
@@ -45,11 +45,12 @@ def on_solve_added(
     """
     review = find_review(session, problem_id)
     if review is None:
+        index, next_date = first_schedule(confidence, solved_date)
         session.add(
             Review(
                 problem_id=problem_id,
-                interval_index=0,
-                next_review_date=solved_date + timedelta(days=1),
+                interval_index=index,
+                next_review_date=next_date,
                 last_reviewed_date=solved_date,
                 last_confidence=confidence,
             )
@@ -60,6 +61,47 @@ def on_solve_added(
         return
     apply_review(review, confidence, solved_date)
     session.add(review)
+
+
+def first_schedule(confidence: int | None, solved_date: date) -> tuple[int, date]:
+    """The schedule a problem starts with after its first solve.
+
+    1 (again), 2 (good) or no rating: index 0, review tomorrow.
+    3 (easy): index 1, review in 3 days. A clean first solve doesn't need a check tomorrow.
+    """
+    index = 1 if confidence == EASY else 0
+    return index, solved_date + timedelta(days=INTERVALS[index])
+
+
+def rerate_first_solve(session: Session, solve: Solve) -> bool:
+    """Recompute the first review date after the confidence of a solve is set or changed.
+
+    Why: synced solves arrive with no confidence, so their first review is always
+    "tomorrow". Rating one right after it arrives should count, as if the solve had
+    been saved with that rating. This only applies while nothing has happened since:
+    - the solve is the problem's first (earliest) solve, and
+    - the review hasn't moved on (last_reviewed_date is still the solve date).
+    A re-solve or a review already reflects real practice, so in every other case
+    editing confidence leaves the schedule alone. Returns True if it rescheduled.
+    Doesn't commit.
+    """
+    review = find_review(session, solve.problem_id)
+    if review is None or review.last_reviewed_date != solve.solved_date:
+        return False
+    first_id = session.exec(
+        select(Solve.id)
+        .where(Solve.problem_id == solve.problem_id)
+        .order_by(Solve.solved_date, Solve.id)
+    ).first()
+    if first_id != solve.id:
+        return False
+
+    review.interval_index, review.next_review_date = first_schedule(
+        solve.confidence, solve.solved_date
+    )
+    review.last_confidence = solve.confidence
+    session.add(review)
+    return True
 
 
 def apply_review(review: Review, confidence: int | None, day: date) -> None:

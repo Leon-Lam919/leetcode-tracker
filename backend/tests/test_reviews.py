@@ -92,14 +92,89 @@ def test_sync_resolve_counts_as_review(client, set_now, fake_leetcode):
     assert "two-sum" in due_slugs(client)
 
 
-def test_patching_confidence_does_not_reschedule(client, set_now):
-    solve = add(client, "2026-10-08")
-    client.patch(f"/api/solves/{solve['id']}", json={"confidence": 1})
+def review_of(client):
+    """Every scheduled review date (due or in the next 30 days), read through the API."""
+    upcoming = client.get("/api/reviews/upcoming?days=30").json()
+    dates = [day["date"] for day in upcoming if day["count"]]
+    due = client.get("/api/reviews/due").json()
+    return [item["next_review_date"] for item in due] + dates
 
-    set_now(2026, 10, 9)
-    assert due_slugs(client) == ["two-sum"]
-    set_now(2026, 10, 8)
-    assert due_slugs(client) == []
+
+# --- Rating a first solve (v3) ----------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("confidence", "next_date"),
+    [(1, "2026-10-09"), (2, "2026-10-09"), (3, "2026-10-11")],
+)
+def test_rating_a_first_solve_sets_its_first_review(client, set_now, confidence, next_date):
+    solve = add(client, "2026-10-08")
+    response = client.patch(f"/api/solves/{solve['id']}", json={"confidence": confidence})
+    assert response.status_code == 200
+
+    assert review_of(client) == [next_date]
+
+
+def test_changing_the_rating_recomputes_again(client, set_now):
+    solve = add(client, "2026-10-08")
+    client.patch(f"/api/solves/{solve['id']}", json={"confidence": 3})
+    client.patch(f"/api/solves/{solve['id']}", json={"confidence": 1})
+    assert review_of(client) == ["2026-10-09"]
+
+
+def test_patch_without_confidence_does_not_reschedule(client, set_now):
+    solve = add(client, "2026-10-08")
+    client.patch(f"/api/solves/{solve['id']}", json={"confidence": 3})
+    client.patch(f"/api/solves/{solve['id']}", json={"notes": "two pass"})
+    assert review_of(client) == ["2026-10-11"]
+
+
+def test_manual_add_with_easy_starts_at_three_days(client, set_now):
+    add(client, "2026-10-08", confidence=3)
+    assert review_of(client) == ["2026-10-11"]
+
+
+def test_rating_a_resolve_does_not_reschedule(client, set_now):
+    add(client, "2026-10-01")
+    resolve = add(client, "2026-10-08")  # good: index 0 -> 1, next 2026-10-11
+    client.patch(f"/api/solves/{resolve['id']}", json={"confidence": 3})
+    assert review_of(client) == ["2026-10-11"]
+
+
+def test_rating_the_first_solve_after_a_resolve_does_not_reschedule(client, set_now):
+    first = add(client, "2026-10-01")
+    add(client, "2026-10-08")  # next 2026-10-11
+    client.patch(f"/api/solves/{first['id']}", json={"confidence": 3})
+    assert review_of(client) == ["2026-10-11"]
+
+
+def test_rating_after_a_review_does_not_reschedule(client, set_now):
+    solve = add(client, "2026-10-06")
+    client.post("/api/reviews/1", json={"confidence": 2})  # reviewed 10-08 -> next 10-11
+    client.patch(f"/api/solves/{solve['id']}", json={"confidence": 1})
+    assert review_of(client) == ["2026-10-11"]
+
+
+# --- GET /api/solves/unrated (v3) --------------------------------------------
+
+
+def test_unrated_lists_recent_solves_without_confidence(client, set_now):
+    add(client, "2026-09-20")  # too old for the default 7 days
+    add(client, "2026-10-02", title_slug="3sum", title="3Sum", difficulty="Medium")
+    add(client, "2026-10-07", title_slug="valid-parentheses", confidence=2)  # rated
+    add(client, "2026-10-08", title_slug="add-two-numbers")
+
+    body = client.get("/api/solves/unrated").json()
+    assert [item["title_slug"] for item in body] == ["add-two-numbers", "3sum"]
+    assert body[0]["confidence"] is None
+    assert body[0]["url"] == "https://leetcode.com/problems/add-two-numbers/"  # SolveOut shape
+
+    assert len(client.get("/api/solves/unrated?days=1").json()) == 1
+    assert len(client.get("/api/solves/unrated?days=30").json()) == 3
+
+
+def test_unrated_validates_days(client):
+    assert client.get("/api/solves/unrated?days=0").status_code == 422
 
 
 def test_deleting_the_only_solve_removes_the_review(client, set_now):

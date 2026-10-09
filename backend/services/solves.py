@@ -1,7 +1,7 @@
 """Business logic for listing, adding, editing, and deleting solves."""
 
 import json
-from datetime import UTC, date
+from datetime import UTC, date, timedelta
 
 from sqlmodel import Session, select
 
@@ -65,6 +65,18 @@ def list_solves(
     if topic:
         results = [solve for solve in results if topic in solve.topics]
     return results
+
+
+def list_unrated(session: Session, today: date, days: int) -> list[SolveOut]:
+    """Solves with no confidence yet from the last `days` local days, newest first."""
+    start = today - timedelta(days=days - 1)
+    query = (
+        select(Solve, Problem)
+        .join(Problem)
+        .where(Solve.confidence.is_(None), Solve.solved_date >= start)
+        .order_by(Solve.solved_date.desc(), Solve.solved_at.desc(), Solve.id.desc())
+    )
+    return [to_solve_out(solve, problem) for solve, problem in session.exec(query)]
 
 
 def solve_exists(session: Session, problem_id: int, solved_date: date) -> bool:
@@ -131,6 +143,8 @@ def update_solve(session: Session, solve_id: int, data: SolveUpdate) -> SolveOut
         setattr(solve, field, value)
 
     session.add(solve)
+    if "confidence" in changes:
+        reviews.rerate_first_solve(session, solve)
     session.commit()
     session.refresh(solve)
     return to_solve_out(solve, session.get(Problem, solve.problem_id))

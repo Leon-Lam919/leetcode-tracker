@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, HTTPException, Query, Response, status
 
 from db import SessionDep
 from models.schemas import SolveCreate, SolveOut, SolveUpdate
 from services import solves
+from services.clock import today_local
 
 router = APIRouter()
 
@@ -15,6 +16,12 @@ def list_solves(
     needs_review: bool | None = None,
 ):
     return solves.list_solves(session, difficulty, topic, needs_review)
+
+
+@router.get("/solves/unrated", response_model=list[SolveOut])
+def list_unrated(session: SessionDep, days: int = Query(default=7, ge=1, le=90)):
+    """Solves with no confidence from the last `days` local days, newest first."""
+    return solves.list_unrated(session, today_local(), days)
 
 
 @router.post("/solves", response_model=SolveOut, status_code=status.HTTP_201_CREATED)
