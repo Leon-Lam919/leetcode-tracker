@@ -150,7 +150,7 @@ Notes:
 
 ## How this was built
 
-This is my **AI-agent-built** project. My other project, a personal dashboard, I write by hand.
+This is my **AI-agent-built** project.
 
 Here the roles were split like this:
 - **I** wrote the specs, set the rules for the agents, and reviewed every result.
