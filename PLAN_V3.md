@@ -5,7 +5,7 @@ v2 is on branch `build/v2` (see `PLAN_V2.md`, `README.md`, `LEARNING.md`). This 
 
 v3 adds two things:
 - **A. Quick rating:** logging confidence and "needs review" is too slow today. You have to open a solve, find the fields in `NoteEditor`, and save. Synced solves arrive with no confidence, so their review schedule ignores how the solve actually went. Rating should take **one click**, right when a solve arrives.
-- **B. AI solution review:** paste your code and Claude reviews it for correctness and complexity, and suggests a better approach. It acts as a mentor, so it gives hints first and the full solution only on request.
+- **B. AI solution review (Cancelled by owner):** paste your code and Claude reviews it for correctness and complexity, and suggests a better approach. It acts as a mentor, so it gives hints first and the full solution only on request.
 
 Deployment comes later. Don't add deploy config.
 
@@ -15,7 +15,7 @@ Deployment comes later. Don't add deploy config.
 - Small commits, imperative messages under 60 characters, each ending with a blank line then `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - Before **every** commit, run `pytest`, `npm test -- --run`, `ruff check .`, `npm run lint` and `npm run build`.
 - No test may hit the network. That includes LeetCode, ntfy and the Anthropic API.
-- **Back up** `backend/data/tracker.db` to `backend/data/tracker.db.v2.bak` before the first new migration runs against it.
+- **Back up** (only if a migration is added) `backend/data/tracker.db` to `backend/data/tracker.db.v2.bak` before the first new migration runs against it.
 - Update `README.md` (features, env vars, cost note) and add one line per step to `LEARNING.md`.
 - Report each change to this plan under **Deviations** in the final report.
 
@@ -56,7 +56,9 @@ In `SolveTable`, an unrated row shows a small "Rate" chip in the confidence colu
 - Skip hides the row.
 - AddSolveForm includes the rating in the POST body only when one is picked.
 
-## 4. Feature B: AI solution review
+## 4. Feature B: AI solution review **(Cancelled by owner)**
+> Cancelled by owner: no API spend. Nothing in this section is built. Kept for reference only.
+
 ### B1. SDK and config
 - Add `anthropic` to `requirements.txt`, pinned to the current release.
 - **Model:** `claude-opus-5-5`. Don't change it to another model.
@@ -185,19 +187,19 @@ Deleting a solve deletes its reviews.
 |---|---|---|
 | 1 | A1 + A2 backend + tests | 30 min |
 | 2 | Shared `ratings.js`, RateSolveCard, AddSolveForm rating, SolveTable inline rating + tests | 1 h |
-| 3 | Migration (problem.description, ai_review), description fetch + fixtures | 30 min |
-| 4 | `ai_review.py` + endpoints + tests | 1 h |
-| 5 | NoteEditor button, AIReviewPanel, table marker, stats line + tests | 1 h |
-| 6 | Real-call check (B8), README, LEARNING.md | 20 min |
+| 3 | ~~Migration (problem.description, ai_review), description fetch + fixtures~~ Cancelled by owner | — |
+| 4 | ~~`ai_review.py` + endpoints + tests~~ Cancelled by owner | — |
+| 5 | ~~NoteEditor button, AIReviewPanel, table marker, stats line + tests~~ Cancelled by owner | — |
+| 6 | ~~Real-call check (B8)~~ (Cancelled by owner), README, LEARNING.md | 20 min |
 
 ## 6. Definition of done
 - [ ] All checks pass (§2), with counts reported.
-- [ ] The real DB upgrades with data intact, and the `.v2.bak` backup exists.
+- [ ] The real DB upgrades with data intact, and the `.v2.bak` backup exists. (Only if a migration is added; Feature A needs none.)
 - [ ] Rating an unrated solve takes **one click** from the Today view, and the review date reflects the rating.
 - [ ] Manual add with a rating stores it in one request.
-- [ ] The AI review works end to end with a fake client in tests, and with a real call if credentials existed (B8).
-- [ ] The improved solution is hidden until clicked.
-- [ ] A refusal and a missing key both show clear messages, never a crash or a blank panel.
+- ~~The AI review works end to end with a fake client in tests, and with a real call if credentials existed (B8).~~ Cancelled by owner
+- ~~The improved solution is hidden until clicked.~~ Cancelled by owner
+- ~~A refusal and a missing key both show clear messages, never a crash or a blank panel.~~ Cancelled by owner
 - [ ] Nothing pushed; `~/dashboard` not accessed.
 
 ## 7. Final report
